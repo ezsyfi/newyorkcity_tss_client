@@ -10,7 +10,7 @@ edition = "2021"
 [lib]
 name = "client_lib"
 path = "src/lib.rs"
-# crate-type = ["staticlib", "cdylib"]
+crate-type = ["staticlib", "cdylib"]
 
 [[bin]]
 name = "cli"

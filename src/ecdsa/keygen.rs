@@ -114,7 +114,7 @@ pub extern "C" fn get_client_master_key(
         Err(_) => panic!("Error while decoding auth token"),
     };
 
-    let client_shim = ClientShim::new(endpoint.to_string(), Some(auth_token.to_string()));
+    let client_shim = ClientShim::new(endpoint.to_string(), None);
 
     let private_share: PrivateShare = get_master_key(&client_shim);
 
