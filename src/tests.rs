@@ -11,7 +11,7 @@
 mod tests {
     use super::super::wallet::Wallet;
 
-    const TEST_WALLET_FILENAME: &str = "test-assets/wallet.data";
+    const TEST_WALLET_FILENAME: &str = "test-assets/wallet.json";
 
     #[test]
     fn load_wallet_test() {

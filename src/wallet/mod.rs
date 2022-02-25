@@ -387,7 +387,7 @@ impl Wallet {
             .unwrap()
             .text()
             .unwrap();
-            
+
         print!("{}", res);
 
         res
@@ -395,12 +395,7 @@ impl Wallet {
 
     pub fn get_new_bitcoin_address(&mut self) -> bitcoin::Address {
         let (pos, mk) = Self::derive_new_key(&self.private_share, self.last_derived_pos);
-        let pk = mk.public.q.get_element();
-        let address =
-            bitcoin::Address::p2wpkh(&to_bitcoin_public_key(pk), self.get_bitcoin_network())
-                .expect(
-                    "Cannot panic because `to_bitcoin_public_key` creates a compressed address",
-                );
+        let address = Self::to_bitcoin_address(&mk, self.get_bitcoin_network());
 
         self.addresses_derivation_map
             .insert(address.to_string(), AddressDerivation { mk, pos });
@@ -439,6 +434,18 @@ impl Wallet {
         aggregated_balance
     }
 
+    pub fn list_unspent(&self) -> Vec<GetListUnspentResponse> {
+        let response: Vec<GetListUnspentResponse> = self
+            .get_all_addresses()
+            .into_iter()
+            .map(|a| self.list_unspent_for_addresss(a.to_string()))
+            .flatten()
+            .collect();
+
+        response
+    }
+
+    /* PRIVATE */
     // TODO: handle fees
     // Select all txin enough to pay the amount
     fn select_tx_in(&self, amount_btc: f32) -> Vec<GetListUnspentResponse> {
@@ -465,18 +472,6 @@ impl Wallet {
         selected
     }
 
-    pub fn list_unspent(&self) -> Vec<GetListUnspentResponse> {
-        let response: Vec<GetListUnspentResponse> = self
-            .get_all_addresses()
-            .into_iter()
-            .map(|a| self.list_unspent_for_addresss(a.to_string()))
-            .flatten()
-            .collect();
-        
-        response
-    }
-
-    /* PRIVATE */
     fn list_unspent_for_addresss(&self, address: String) -> Vec<GetListUnspentResponse> {
         let unspent_tx_url =
             BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "?unspentOnly=true";
@@ -502,6 +497,16 @@ impl Wallet {
         }
     }
 
+    fn get_all_addresses_balance(&self) -> Vec<GetBalanceResponse> {
+        let response: Vec<GetBalanceResponse> = self
+            .get_all_addresses()
+            .into_iter()
+            .map(|a| Self::get_address_balance(&a))
+            .collect();
+
+        response
+    }
+
     fn get_address_balance(address: &bitcoin::Address) -> GetBalanceResponse {
         let balance_url =
             BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
@@ -514,16 +519,6 @@ impl Wallet {
             unconfirmed: address_balance.unconfirmed_balance,
             address: address.to_string(),
         }
-    }
-
-    fn get_all_addresses_balance(&self) -> Vec<GetBalanceResponse> {
-        let response: Vec<GetBalanceResponse> = self
-            .get_all_addresses()
-            .into_iter()
-            .map(|a| Self::get_address_balance(&a))
-            .collect();
-
-        response
     }
 
     fn get_all_addresses(&self) -> Vec<bitcoin::Address> {
@@ -545,6 +540,11 @@ impl Wallet {
         response
     }
 
+    fn to_bitcoin_address(mk: &MasterKey2, network: Network) -> bitcoin::Address {
+        bitcoin::Address::p2wpkh(&to_bitcoin_public_key(mk.public.q.get_element()), network)
+            .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address")
+    }
+
     fn derive_new_key(private_share: &PrivateShare, pos: u32) -> (u32, MasterKey2) {
         let last_pos: u32 = pos + 1;
 
@@ -557,11 +557,6 @@ impl Wallet {
 
     fn get_bitcoin_network(&self) -> Network {
         self.network.parse::<Network>().unwrap()
-    }
-
-    fn to_bitcoin_address(mk: &MasterKey2, network: Network) -> bitcoin::Address {
-        bitcoin::Address::p2wpkh(&to_bitcoin_public_key(mk.public.q.get_element()), network)
-            .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address")
     }
 }
 
