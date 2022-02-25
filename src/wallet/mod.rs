@@ -395,53 +395,15 @@ impl Wallet {
 
     pub fn get_new_bitcoin_address(&mut self) -> bitcoin::Address {
         let (pos, mk) = Self::derive_new_key(&self.private_share, self.last_derived_pos);
-        // let pk = mk.public.q.get_element();
         let address = Self::to_bitcoin_address(&mk, self.get_bitcoin_network());
-            // bitcoin::Address::p2wpkh(&to_bitcoin_public_key(pk), self.get_bitcoin_network())
-            //     .expect(
-            //         "Cannot panic because `to_bitcoin_public_key` creates a compressed address",
-            //     );
 
         self.addresses_derivation_map
             .insert(address.to_string(), AddressDerivation { mk, pos });
 
         self.last_derived_pos = pos;
-        
-        // let private_share_json = match serde_json::to_string(&self.private_share) {
-        //     Ok(share) => share,
-        //     Err(_) => panic!("Error"),
-        // };
-
-        // Self::get_addr(private_share_json, "testnet".to_owned(), self.last_derived_pos);
 
         address
     }
-
-    // fn get_addr(private_share_json: String, network: String, pos: u32) -> String {
-
-    //     println!("b network: {}", network);
-    //     println!("b l_pos_der: {}", pos);
-
-    //     let private_share: PrivateShare = serde_json::from_str(&private_share_json).unwrap();
-    //     let (pos, mk) = Self::derive_new_key(&private_share, pos);
-    //     let pk = mk.public.q.get_element();
-    //     let address =
-    //         bitcoin::Address::p2wpkh(&to_bitcoin_public_key(pk), network.parse::<Network>().unwrap())
-    //             .expect(
-    //                 "Cannot panic because `to_bitcoin_public_key` creates a compressed address",
-    //             );
-
-    //             let mk_json = match serde_json::to_string(&mk) {
-    //                 Ok(share) => share,
-    //                 Err(_) => panic!("Error"),
-    //             };
-
-    //     println!("a mk: {}", mk_json);
-    //     println!("a addr: {}", address.to_string());
-    //     println!("a l_pos_der: {}", pos);
-
-    //     address.to_string()
-    // }
 
     pub fn derived(&mut self) {
         for i in 0..self.last_derived_pos {
