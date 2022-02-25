@@ -75,7 +75,6 @@ pub extern "C" fn get_btc_addrs(
         .into_raw()
 }
 
-// SWITCH TO 86ENV TO TEST
 #[cfg(test)]
 mod tests {
     use std::fs;
