@@ -1,18 +1,23 @@
-# Gotham Client
-![Gotham Client](../misc/client-icon.png)
+# New York City TSS client
 
 ## Introduction
-Gotham client is a bitcoin minimalist decentralized wallet CLI app.
+
+New York City TSS is the client implementation for ezsy's TSS wallet.
+
+We build it as a `.so` or   `.a` file which will be used by our ezsy flutter mobile app via dartlang ffi as a flutter plugin.
 
 ## Requirement
-Gotham server is required to interact with the client, for instruction on how to run it see [here](../gotham-server/README.md).
+
+New York City TSS server is required to interact with the client. It will be hosted in a separate repository.
 
 ## Installation
+
 ```bash
-git clone https://github.com/KZen-networks/gotham-city.git
-cd gotham-city/TSS-wallet-mobile
+git clone https://github.com/ezsyfi/NewYorkCity-TSS-client
+
 cargo build --release
 ```
+
 
 ## Using the CLI
 ```bash
