@@ -108,6 +108,7 @@ pub extern "C" fn get_client_master_key(
         Err(_) => panic!("Error while decoding raw endpoint"),
     };
 
+    // TODO: Implement after complete auth feature on server
     let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
     let auth_token = match raw_auth_token.to_str() {
         Ok(s) => s,

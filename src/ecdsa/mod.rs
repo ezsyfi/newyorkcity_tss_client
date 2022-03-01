@@ -13,6 +13,7 @@ pub mod types;
 pub mod recover;
 pub mod get_addrs;
 pub mod get_raw_tx;
+pub mod utils;
 
 pub use keygen::get_master_key;
 pub use rotate::rotate_master_key;
