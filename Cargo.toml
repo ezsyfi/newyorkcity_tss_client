@@ -28,7 +28,7 @@ uuid = { version = "0.8.2", features = ["v4"] }
 # electrumx_client = { git = "https://github.com/KZen-networks/rust-electrumx-client", tag = "bitcoin@0.20.0" }
 itertools = "0.10.3"
 hex = "0.4.3"
-bitcoin = "0.27.0"
+bitcoin = "0.27.1"
 config = "0.11.0"
 floating-duration = "0.1.2"
 curv = { package = "curv-kzen", version = "0.7" }
