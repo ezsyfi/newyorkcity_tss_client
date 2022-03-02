@@ -38,7 +38,7 @@ mod tests {
 //    fn send_test() {
 //        // expect the server running
 //        let client_shim : api::ClientShim = api::ClientShim::new(
-//            "http://localhost:8000".to_string(), None);
+//            "http://localhost:8001".to_string(), None);
 //
 //        let  mut w : Wallet = Wallet::load_from(TEST_WALLET_FILENAME);
 //        let b = w.get_balance();
