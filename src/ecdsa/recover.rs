@@ -12,7 +12,7 @@ use serde_json;
 use centipede::juggling::segmentation::Msegmentation;
 use centipede::juggling::proof_system::Helgamalsegmented;
 use curv::elliptic::curves::traits::{ECScalar, ECPoint};
-use crate::curv::arithmetic::{Converter, Modulo};
+use curv::arithmetic::{Converter, Modulo};
 use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::BigInt;
 use serde_json::Error;

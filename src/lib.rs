@@ -7,14 +7,6 @@
 // version 3 of the License, or (at your option) any later version.
 //
 
-extern crate centipede;
-extern crate config;
-extern crate curv;
-extern crate kms;
-extern crate multi_party_ecdsa;
-extern crate reqwest;
-extern crate zk_paillier;
-
 #[macro_use]
 extern crate serde_derive;
 extern crate serde;
@@ -26,10 +18,6 @@ extern crate log;
 #[macro_use]
 extern crate failure;
 
-extern crate bitcoin;
-extern crate hex;
-extern crate itertools;
-extern crate uuid;
 
 pub mod ecdsa;
 pub mod escrow;

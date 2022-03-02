@@ -18,7 +18,7 @@ pub fn to_bitcoin_address(network: String, mk: &MasterKey2) -> bitcoin::Address 
 }
 
 pub fn get_new_bitcoin_address(private_share: &PrivateShare, last_derived_pos: i32) -> bitcoin::Address {
-    let (pos, mk) = derive_new_key(&private_share, last_derived_pos);
+    let (_pos, mk) = derive_new_key(&private_share, last_derived_pos);
     to_bitcoin_address(BTC_TESTNET.to_owned(), &mk)
 }
 
