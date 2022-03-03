@@ -231,7 +231,7 @@ fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec
         let mk = private_share
             .master_key
             .get_child(vec![BigInt::from(0), BigInt::from(n)]);
-        let bitcoin_address = to_bitcoin_address(BTC_TESTNET.to_owned(), &mk);
+        let bitcoin_address = to_bitcoin_address(BTC_TESTNET, &mk);
 
         response.push(bitcoin_address);
     }

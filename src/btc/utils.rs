@@ -8,11 +8,11 @@ use crate::ecdsa::PrivateShare;
 
 pub const BTC_TESTNET: &str = "testnet";
 
-pub fn to_bitcoin_address(network: String, mk: &MasterKey2) -> bitcoin::Address {
+pub fn to_bitcoin_address(network: &str, mk: &MasterKey2) -> bitcoin::Address {
     let pk = mk.public.q.get_element();
     let address = bitcoin::Address::p2wpkh(
         &to_bitcoin_public_key(pk),
-        network.parse::<bitcoin::Network>().unwrap(),
+        network.to_owned().parse::<bitcoin::Network>().unwrap(),
     )
     .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
     address
@@ -20,7 +20,7 @@ pub fn to_bitcoin_address(network: String, mk: &MasterKey2) -> bitcoin::Address 
 
 pub fn get_new_bitcoin_address(private_share: &PrivateShare, last_derived_pos: u32) -> bitcoin::Address {
     let (_pos, mk) = derive_new_key(&private_share, last_derived_pos);
-    to_bitcoin_address(BTC_TESTNET.to_owned(), &mk)
+    to_bitcoin_address(BTC_TESTNET, &mk)
 }
 
 pub fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {

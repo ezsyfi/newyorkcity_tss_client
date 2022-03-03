@@ -1,4 +1,3 @@
-use bitcoin::network::constants::Network;
 use bitcoin::{self};
 use curv::elliptic::curves::secp256_k1::{GE, PK};
 use curv::elliptic::curves::traits::ECPoint;
@@ -13,6 +12,8 @@ use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
+
+use crate::btc::utils::{to_bitcoin_address, get_bitcoin_network, derive_new_key, to_bitcoin_public_key};
 
 use super::btc;
 
@@ -288,8 +289,8 @@ impl Wallet {
     }
 
     pub fn get_new_bitcoin_address(&mut self) -> bitcoin::Address {
-        let (pos, mk) = Self::derive_new_key(&self.private_share, self.last_derived_pos);
-        let address = Self::to_bitcoin_address(&mk, self.get_bitcoin_network());
+        let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
+        let address = to_bitcoin_address(&self.network, &mk );
 
         self.addresses_derivation_map
             .insert(address.to_string(), AddressDerivation { mk, pos });
@@ -301,11 +302,11 @@ impl Wallet {
 
     pub fn derived(&mut self) {
         for i in 0..self.last_derived_pos {
-            let (pos, mk) = Self::derive_new_key(&self.private_share, i);
+            let (pos, mk) = derive_new_key(&self.private_share, i);
 
             let address = bitcoin::Address::p2wpkh(
                 &to_bitcoin_public_key(mk.public.q.get_element()),
-                self.get_bitcoin_network(),
+                get_bitcoin_network(),
             )
             .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
 
@@ -401,39 +402,12 @@ impl Wallet {
                 .private_share
                 .master_key
                 .get_child(vec![BigInt::from(0), BigInt::from(n)]);
-            let bitcoin_address = Self::to_bitcoin_address(&mk, self.get_bitcoin_network());
+            let bitcoin_address = to_bitcoin_address(&self.network, &mk);
 
             response.push(bitcoin_address);
         }
 
         response
-    }
-
-    fn to_bitcoin_address(mk: &MasterKey2, network: Network) -> bitcoin::Address {
-        bitcoin::Address::p2wpkh(&to_bitcoin_public_key(mk.public.q.get_element()), network)
-            .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address")
-    }
-
-    fn derive_new_key(private_share: &PrivateShare, pos: u32) -> (u32, MasterKey2) {
-        let last_pos: u32 = pos + 1;
-
-        let last_child_master_key = private_share
-            .master_key
-            .get_child(vec![BigInt::from(0), BigInt::from(last_pos)]);
-
-        (last_pos, last_child_master_key)
-    }
-
-    fn get_bitcoin_network(&self) -> Network {
-        self.network.parse::<Network>().unwrap()
-    }
-}
-
-// type conversion
-fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
-    bitcoin::util::key::PublicKey {
-        compressed: true,
-        key: pk,
     }
 }
 
