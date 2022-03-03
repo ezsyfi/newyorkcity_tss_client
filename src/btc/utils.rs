@@ -3,7 +3,8 @@ use curv::elliptic::curves::secp256_k1::PK;
 use curv::elliptic::curves::traits::ECPoint;
 use kms::ecdsa::two_party::MasterKey2;
 use curv::BigInt;
-use super::PrivateShare;
+
+use crate::ecdsa::PrivateShare;
 
 pub const BTC_TESTNET: &str = "testnet";
 
@@ -17,7 +18,7 @@ pub fn to_bitcoin_address(network: String, mk: &MasterKey2) -> bitcoin::Address 
     address
 }
 
-pub fn get_new_bitcoin_address(private_share: &PrivateShare, last_derived_pos: i32) -> bitcoin::Address {
+pub fn get_new_bitcoin_address(private_share: &PrivateShare, last_derived_pos: u32) -> bitcoin::Address {
     let (_pos, mk) = derive_new_key(&private_share, last_derived_pos);
     to_bitcoin_address(BTC_TESTNET.to_owned(), &mk)
 }
@@ -30,8 +31,8 @@ pub fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
 }
 
 
-pub fn derive_new_key(private_share: &PrivateShare, pos: i32) -> (i32, MasterKey2) {
-    let last_pos: i32 = pos + 1;
+pub fn derive_new_key(private_share: &PrivateShare, pos: u32) -> (u32, MasterKey2) {
+    let last_pos: u32 = pos + 1;
 
     let last_child_master_key = private_share
         .master_key

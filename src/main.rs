@@ -1,11 +1,4 @@
-// Gotham-city
-//
-// Copyright 2018 by Kzen Networks (kzencorp.com)
-// Gotham city is free software: you can redistribute
-// it and/or modify it under the terms of the GNU General Public
-// License as published by the Free Software Foundation, either
-// version 3 of the License, or (at your option) any later version.
-//
+#![no_main]
 
 // #[macro_use]
 // extern crate clap;
@@ -16,7 +9,6 @@
 // use client_lib::wallet;
 // use std::time::Instant;
 // use floating_duration::TimeFormat;
-
 // use std::collections::HashMap;
 
 // fn main() {
@@ -122,5 +114,3 @@
 //         }
 //     }
 // }
-
-fn main() {}

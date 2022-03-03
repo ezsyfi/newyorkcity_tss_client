@@ -103,7 +103,7 @@
                 "-a",
                 "0.0001",
                 "-t",
-                "tb1qvqst5xdyvgmfvqcq56prlvxyckz5jhsfe00svp"
+                "tb1ql7w62elx9ucw4pj5lgw4l028hmuw80sndtntxt"
             ],
             "cwd": "${workspaceFolder}"
         },

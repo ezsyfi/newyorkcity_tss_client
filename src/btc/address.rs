@@ -2,22 +2,23 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
+use crate::ecdsa::PrivateShare;
+
 use super::utils::{derive_new_key, get_new_bitcoin_address};
-use super::PrivateShare;
 use kms::ecdsa::two_party::MasterKey2;
 
 
 #[derive(Serialize, Deserialize)]
 struct GetBtcAddressFFIResp {
     address: String,
-    pos: i32,
+    pos: u32,
     mk: MasterKey2,
 }
 
 #[no_mangle]
 pub extern "C" fn get_btc_addrs(
     c_private_share_json: *const c_char,
-    c_last_derived_pos: i32,
+    c_last_derived_pos: u32,
 ) -> *mut c_char {
     let raw_private_share_json = unsafe { CStr::from_ptr(c_private_share_json) };
     let private_share_json = match raw_private_share_json.to_str() {
@@ -47,8 +48,9 @@ pub extern "C" fn get_btc_addrs(
 
 #[cfg(test)]
 mod tests {
-    use crate::ecdsa::{utils::{to_bitcoin_address, BTC_TESTNET}, PrivateShare};
     use std::fs;
+
+    use crate::{ecdsa::PrivateShare, btc::utils::{to_bitcoin_address, BTC_TESTNET}};
     const PRIVATE_SHARE_FILENAME: &str = "test-assets/private_share.json";
     #[test]
     fn test_derive_new_key() {

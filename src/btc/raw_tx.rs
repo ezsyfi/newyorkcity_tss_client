@@ -1,8 +1,6 @@
+use crate::btc::utils::{get_bitcoin_network, get_new_bitcoin_address, to_bitcoin_public_key};
 // // iOS bindings
-use super::types::PrivateShare;
-use super::utils::{to_bitcoin_address, BTC_TESTNET};
-use crate::ecdsa::sign;
-use crate::ecdsa::utils::{get_bitcoin_network, get_new_bitcoin_address, to_bitcoin_public_key};
+use crate::ecdsa::{sign, PrivateShare};
 use crate::wallet::{
     AddressDerivation, BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse,
 };
@@ -27,19 +25,23 @@ use serde_json;
 use hex;
 use std::str::FromStr;
 
-const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
+use super::utils::{to_bitcoin_address, BTC_TESTNET};
 
-fn create_raw_tx(
+pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
+
+pub fn create_raw_tx(
     to_address: String,
     amount_btc: f32,
     client_shim: &ClientShim,
-    last_derived_pos: i32,
+    last_derived_pos: u32,
     private_share: &PrivateShare,
-    addresses_derivation_map: HashMap<String, AddressDerivation>,
+    addresses_derivation_map: &HashMap<String, AddressDerivation>,
 ) -> String {
     let selected = select_tx_in(amount_btc, last_derived_pos, private_share);
+
     if selected.is_empty() {
-        panic!("Not enough fund");
+        println!("Not enough fund");
+        return "".to_string();
     }
 
     /* Specify "vin" array aka Transaction Inputs */
@@ -136,9 +138,11 @@ fn create_raw_tx(
     hex::encode(serialize(&signed_transaction))
 }
 
+// TODO: handle fees
+// Select all txin enough to pay the amount
 fn select_tx_in(
     amount_btc: f32,
-    last_derived_pos: i32,
+    last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Vec<GetListUnspentResponse> {
     // greedy selection
@@ -151,6 +155,8 @@ fn select_tx_in(
             .sorted_by(|a, b| a.value.partial_cmp(&b.value).unwrap())
             .into_iter()
             .collect();
+
+    // println!("list_unspent {:#?}", list_unspent);
 
     let mut remaining: i64 = (amount_btc * 100_000_000.0) as i64;
     let mut selected: Vec<GetListUnspentResponse> = Vec::new();
@@ -191,7 +197,7 @@ fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
 }
 
 fn get_all_addresses_balance(
-    last_derived_pos: i32,
+    last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Vec<GetBalanceResponse> {
     let response: Vec<GetBalanceResponse> = get_all_addresses(last_derived_pos, &private_share)
@@ -199,6 +205,7 @@ fn get_all_addresses_balance(
         .map(|a| get_address_balance(&a))
         .collect();
 
+    // println!("get_all_addresses_balance {:#?}", response);
     response
 }
 
@@ -214,7 +221,7 @@ fn get_address_balance(address: &bitcoin::Address) -> GetBalanceResponse {
     }
 }
 
-fn get_all_addresses(last_derived_pos: i32, private_share: &PrivateShare) -> Vec<bitcoin::Address> {
+fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec<bitcoin::Address> {
     let init = 0;
     let last_pos = last_derived_pos;
 
@@ -238,9 +245,9 @@ pub extern "C" fn get_raw_btc_tx(
     c_auth_token: *const c_char,
     c_to_address: *const c_char,
     c_amount_btc: f32,
-    c_last_derived_pos: i32,
+    c_last_derived_pos: u32,
     c_private_share_json: *const c_char,
-    c_addresses_derivation_map: *const c_char
+    c_addresses_derivation_map: *const c_char,
 ) -> *mut c_char {
     let raw_endpoint_json = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint_json.to_str() {
@@ -273,7 +280,8 @@ pub extern "C" fn get_raw_btc_tx(
         Ok(s) => s,
         Err(_) => panic!("Error while decoding raw addresses derivation map"),
     };
-    let addresses_derivation_map: HashMap<String, AddressDerivation> = serde_json::from_str(&addresses_derivation_map_json).unwrap();
+    let addresses_derivation_map: HashMap<String, AddressDerivation> =
+        serde_json::from_str(&addresses_derivation_map_json).unwrap();
 
     let client_shim = ClientShim::new(endpoint.to_string(), None);
 
@@ -283,10 +291,8 @@ pub extern "C" fn get_raw_btc_tx(
         &client_shim,
         c_last_derived_pos,
         &private_share,
-        addresses_derivation_map,
+        &addresses_derivation_map,
     );
 
-    CString::new(raw_tx.to_owned())
-        .unwrap()
-        .into_raw()
+    CString::new(raw_tx.to_owned()).unwrap().into_raw()
 }
