@@ -271,7 +271,7 @@ pub extern "C" fn get_raw_btc_tx(
     let raw_addresses_derivation_map_json = unsafe { CStr::from_ptr(c_addresses_derivation_map) };
     let addresses_derivation_map_json = match raw_addresses_derivation_map_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw private share"),
+        Err(_) => panic!("Error while decoding raw addresses derivation map"),
     };
     let addresses_derivation_map: HashMap<String, AddressDerivation> = serde_json::from_str(&addresses_derivation_map_json).unwrap();
 

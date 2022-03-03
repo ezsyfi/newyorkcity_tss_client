@@ -11,7 +11,7 @@ use kms::ecdsa::two_party::MasterKey2;
 struct GetBtcAddressFFIResp {
     address: String,
     pos: i32,
-    master_key: MasterKey2,
+    mk: MasterKey2,
 }
 
 #[no_mangle]
@@ -32,7 +32,7 @@ pub extern "C" fn get_btc_addrs(
     let get_addr_resp = GetBtcAddressFFIResp {
         address: address.to_string(),
         pos: pos,
-        master_key: mk,
+        mk: mk,
     };
 
     let get_addr_resp_json = match serde_json::to_string(&get_addr_resp) {
