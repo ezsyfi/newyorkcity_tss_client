@@ -87,7 +87,7 @@ pub fn create_raw_tx(
     ];
 
     let mut transaction = bitcoin::Transaction {
-        version: 0,
+        version: 2,
         lock_time: 0,
         input: txs_in,
         output: txs_out,
@@ -257,7 +257,7 @@ pub extern "C" fn get_raw_btc_tx(
 
     // TODO: Implement after complete auth feature on server
     let raw_auth_json = unsafe { CStr::from_ptr(c_auth_token) };
-    let auth = match raw_auth_json.to_str() {
+    let _auth = match raw_auth_json.to_str() {
         Ok(s) => s,
         Err(_) => panic!("Error while decoding raw auth token"),
     };

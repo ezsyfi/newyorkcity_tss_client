@@ -1,5 +1,5 @@
 use bitcoin::{self};
-use curv::elliptic::curves::secp256_k1::{GE, PK};
+use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::ECPoint;
 use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
