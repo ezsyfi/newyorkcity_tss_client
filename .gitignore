@@ -11,7 +11,6 @@ Cargo.lock
 .idea
 db/
 *.priv
-wallet/wallet.data
 escrow/client.backup
 escrow/escrow-sk.json
 escrow/sk-recovered.json
@@ -20,3 +19,6 @@ escrow/sk-recovered.json
 libclient.h
 **/*.a
 **/*.so
+
+# Ignore wallet data
+/wallet/

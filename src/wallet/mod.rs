@@ -1,25 +1,10 @@
-// Gotham-city
-//
-// Copyright 2018 by Kzen Networks (kzencorp.com)
-// Gotham city is free software: you can redistribute
-// it and/or modify it under the terms of the GNU General Public
-// License as published by the Free Software Foundation, either
-// version 3 of the License, or (at your option) any later version.
-//
-
-use bitcoin;
-use bitcoin::consensus::encode::serialize;
-use bitcoin::hashes::{hex::FromHex, sha256d};
-use bitcoin::network::constants::Network;
-use bitcoin::secp256k1::Signature;
-use bitcoin::util::bip143::SighashComponents;
-use bitcoin::{TxIn, TxOut, Txid};
-use curv::elliptic::curves::secp256_k1::{GE, PK};
+use bitcoin::{self};
+use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::ECPoint;
 use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
-use serde_json;
+use serde_json::{self};
 use std::fs;
 use uuid::Uuid;
 
@@ -27,91 +12,23 @@ use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
+
+use crate::btc::dto::{AddressDerivation, BlockCypherRawTx, GetWalletBalanceResponse, GetListUnspentResponse, BlockCypherAddress, GetBalanceResponse};
+use crate::btc::utils::{to_bitcoin_address, get_bitcoin_network, derive_new_key, to_bitcoin_public_key};
+
+use super::btc;
+
 use super::ecdsa;
 use super::ecdsa::types::PrivateShare;
 use super::escrow;
 use super::utilities::requests;
 use super::ClientShim;
-use curv::arithmetic::traits::Converter;
-use hex;
-use itertools::Itertools;
 use std::collections::HashMap;
-use std::str::FromStr;
 
 // TODO: move that to a config file and double check electrum server addresses
 const WALLET_FILENAME: &str = "wallet/wallet.data";
 const BACKUP_FILENAME: &str = "wallet/backup.data";
 const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
-
-#[derive(Serialize, Deserialize)]
-pub struct SignSecondMsgRequest {
-    pub message: BigInt,
-    pub party_two_sign_message: party2::SignMessage,
-    pub pos_child_key: u32,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct GetBalanceResponse {
-    pub address: String,
-    pub confirmed: u64,
-    pub unconfirmed: i64,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct GetListUnspentResponse {
-    pub height: isize,
-    pub tx_hash: String,
-    pub tx_pos: usize,
-    pub value: usize,
-    pub address: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetWalletBalanceResponse {
-    pub confirmed: u64,
-    pub unconfirmed: i64,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct AddressDerivation {
-    pub pos: u32,
-    pub mk: MasterKey2,
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-struct BlockCypherAddress {
-    address: String,
-    total_received: u64,
-    total_sent: u64,
-    balance: u64,
-    unconfirmed_balance: i64,
-    final_balance: u64,
-    n_tx: u64,
-    unconfirmed_n_tx: u64,
-    final_n_tx: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    txrefs: Option<Vec<BlockCypherTxRef>>,
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-struct BlockCypherTxRef {
-    pub tx_hash: String,
-    pub block_height: isize,
-    pub tx_input_n: isize,
-    pub tx_output_n: usize,
-    pub value: usize,
-    pub ref_balance: u64,
-    pub spent: bool,
-    pub confirmations: u64,
-    pub confirmed: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct BlockCypherRawTx {
-    pub tx: String,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct Wallet {
@@ -275,106 +192,15 @@ impl Wallet {
         amount_btc: f32,
         client_shim: &ClientShim,
     ) -> String {
-        let selected = self.select_tx_in(amount_btc);
-        if selected.is_empty() {
-            panic!("Not enough fund");
-        }
 
-        let to_btc_adress = bitcoin::Address::from_str(&to_address).unwrap();
-
-        let txs_in: Vec<TxIn> = selected
-            .clone()
-            .into_iter()
-            .map(|s| bitcoin::TxIn {
-                previous_output: bitcoin::OutPoint {
-                    txid: Txid::from_hash(sha256d::Hash::from_hex(&s.tx_hash).unwrap()),
-                    vout: s.tx_pos as u32,
-                },
-                script_sig: bitcoin::Script::default(),
-                sequence: 0xFFFFFFFF,
-                witness: Vec::default(),
-            })
-            .collect();
-
-        // let fees = 10_000;
-
-        let amount_satoshi = (amount_btc * 100_000_000 as f32) as u64;
-
-        let change_address = self.get_new_bitcoin_address();
-
-        let total_selected = selected
-            .clone()
-            .into_iter()
-            .fold(0, |sum, val| sum + val.value) as u64;
-
-        println!(
-            "amount_satoshi: {} - total_selected: {}  ",
-            amount_satoshi, total_selected
+        let raw_tx_hex = btc::raw_tx::create_raw_tx(
+            to_address,
+            amount_btc,
+            client_shim,
+            self.last_derived_pos,
+            &self.private_share,
+            &self.addresses_derivation_map,
         );
-        println!("{} - back", total_selected - amount_satoshi);
-
-        let txs_out = vec![
-            TxOut {
-                value: amount_satoshi,
-                script_pubkey: to_btc_adress.script_pubkey(),
-            },
-            TxOut {
-                value: total_selected - amount_satoshi,
-                script_pubkey: change_address.script_pubkey(),
-            },
-        ];
-
-        let transaction = bitcoin::Transaction {
-            version: 0,
-            lock_time: 0,
-            input: txs_in,
-            output: txs_out,
-        };
-
-        let mut signed_transaction = transaction.clone();
-
-        for i in 0..transaction.input.len() {
-            let address_derivation = self
-                .addresses_derivation_map
-                .get(&selected[i].address)
-                .unwrap();
-
-            let mk = &address_derivation.mk;
-            let pk = mk.public.q.get_element();
-
-            let comp = SighashComponents::new(&transaction);
-            let sig_hash = comp.sighash_all(
-                &transaction.input[i],
-                &bitcoin::Address::p2pkh(&to_bitcoin_public_key(pk), self.get_bitcoin_network())
-                    .script_pubkey(),
-                (selected[i].value as u32).into(),
-            );
-
-            let signature = ecdsa::sign(
-                client_shim,
-                BigInt::from_hex(&hex::encode(&sig_hash[..])).unwrap(),
-                &mk,
-                BigInt::from(0),
-                BigInt::from(address_derivation.pos),
-                &self.private_share.id,
-            )
-            .unwrap();
-
-            let mut v = BigInt::to_bytes(&signature.r);
-            v.extend(BigInt::to_bytes(&signature.s));
-
-            let mut sig_vec = Signature::from_compact(&v[..])
-                .unwrap()
-                .serialize_der()
-                .to_vec();
-            sig_vec.push(01);
-
-            let pk_vec = pk.serialize().to_vec();
-
-            signed_transaction.input[i].witness = vec![sig_vec, pk_vec];
-        }
-
-        let raw_tx_hex = hex::encode(serialize(&signed_transaction));
 
         let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
         let raw_tx = BlockCypherRawTx {
@@ -394,8 +220,8 @@ impl Wallet {
     }
 
     pub fn get_new_bitcoin_address(&mut self) -> bitcoin::Address {
-        let (pos, mk) = Self::derive_new_key(&self.private_share, self.last_derived_pos);
-        let address = Self::to_bitcoin_address(&mk, self.get_bitcoin_network());
+        let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
+        let address = to_bitcoin_address(&self.network, &mk );
 
         self.addresses_derivation_map
             .insert(address.to_string(), AddressDerivation { mk, pos });
@@ -407,11 +233,11 @@ impl Wallet {
 
     pub fn derived(&mut self) {
         for i in 0..self.last_derived_pos {
-            let (pos, mk) = Self::derive_new_key(&self.private_share, i);
+            let (pos, mk) = derive_new_key(&self.private_share, i);
 
             let address = bitcoin::Address::p2wpkh(
                 &to_bitcoin_public_key(mk.public.q.get_element()),
-                self.get_bitcoin_network(),
+                get_bitcoin_network(&self.network),
             )
             .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
 
@@ -446,32 +272,6 @@ impl Wallet {
     }
 
     /* PRIVATE */
-    // TODO: handle fees
-    // Select all txin enough to pay the amount
-    fn select_tx_in(&self, amount_btc: f32) -> Vec<GetListUnspentResponse> {
-        // greedy selection
-        let list_unspent: Vec<GetListUnspentResponse> = self
-            .get_all_addresses_balance()
-            .into_iter()
-            //            .filter(|b| b.confirmed > 0)
-            .map(|a| self.list_unspent_for_addresss(a.address.to_string()))
-            .flatten()
-            .sorted_by(|a, b| a.value.partial_cmp(&b.value).unwrap())
-            .into_iter()
-            .collect();
-
-        let mut remaining: i64 = (amount_btc * 100_000_000.0) as i64;
-        let mut selected: Vec<GetListUnspentResponse> = Vec::new();
-        for unspent in list_unspent {
-            selected.push(unspent.clone());
-            remaining -= unspent.value as i64;
-            if remaining < 0 {
-                break;
-            }
-        }
-        selected
-    }
-
     fn list_unspent_for_addresss(&self, address: String) -> Vec<GetListUnspentResponse> {
         let unspent_tx_url =
             BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "?unspentOnly=true";
@@ -479,6 +279,7 @@ impl Wallet {
             .unwrap()
             .text()
             .unwrap();
+
         let address_balance_with_tx_refs: BlockCypherAddress =
             serde_json::from_str(res.as_str()).unwrap();
         if let Some(tx_refs) = address_balance_with_tx_refs.txrefs {
@@ -532,39 +333,12 @@ impl Wallet {
                 .private_share
                 .master_key
                 .get_child(vec![BigInt::from(0), BigInt::from(n)]);
-            let bitcoin_address = Self::to_bitcoin_address(&mk, self.get_bitcoin_network());
+            let bitcoin_address = to_bitcoin_address(&self.network, &mk);
 
             response.push(bitcoin_address);
         }
 
         response
-    }
-
-    fn to_bitcoin_address(mk: &MasterKey2, network: Network) -> bitcoin::Address {
-        bitcoin::Address::p2wpkh(&to_bitcoin_public_key(mk.public.q.get_element()), network)
-            .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address")
-    }
-
-    fn derive_new_key(private_share: &PrivateShare, pos: u32) -> (u32, MasterKey2) {
-        let last_pos: u32 = pos + 1;
-
-        let last_child_master_key = private_share
-            .master_key
-            .get_child(vec![BigInt::from(0), BigInt::from(last_pos)]);
-
-        (last_pos, last_child_master_key)
-    }
-
-    fn get_bitcoin_network(&self) -> Network {
-        self.network.parse::<Network>().unwrap()
-    }
-}
-
-// type conversion
-fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
-    bitcoin::util::key::PublicKey {
-        compressed: true,
-        key: pk,
     }
 }
 

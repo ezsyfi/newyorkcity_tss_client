@@ -1,11 +1,4 @@
-// Gotham-city
-//
-// Copyright 2018 by Kzen Networks (kzencorp.com)
-// Gotham city is free software: you can redistribute
-// it and/or modify it under the terms of the GNU General Public
-// License as published by the Free Software Foundation, either
-// version 3 of the License, or (at your option) any later version.
-//
+ 
 
 use serde_json;
 use std::time::Instant;
@@ -108,8 +101,9 @@ pub extern "C" fn get_client_master_key(
         Err(_) => panic!("Error while decoding raw endpoint"),
     };
 
+    // TODO: Implement after complete auth feature on server
     let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
-    let auth_token = match raw_auth_token.to_str() {
+    let _auth_token = match raw_auth_token.to_str() {
         Ok(s) => s,
         Err(_) => panic!("Error while decoding auth token"),
     };
