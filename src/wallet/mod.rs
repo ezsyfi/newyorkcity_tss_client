@@ -13,6 +13,7 @@ use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
 
+use crate::btc::dto::{AddressDerivation, BlockCypherRawTx, GetWalletBalanceResponse, GetListUnspentResponse, BlockCypherAddress, GetBalanceResponse};
 use crate::btc::utils::{to_bitcoin_address, get_bitcoin_network, derive_new_key, to_bitcoin_public_key};
 
 use super::btc;
@@ -28,76 +29,6 @@ use std::collections::HashMap;
 const WALLET_FILENAME: &str = "wallet/wallet.data";
 const BACKUP_FILENAME: &str = "wallet/backup.data";
 const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
-
-#[derive(Serialize, Deserialize)]
-pub struct SignSecondMsgRequest {
-    pub message: BigInt,
-    pub party_two_sign_message: party2::SignMessage,
-    pub pos_child_key: u32,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct GetBalanceResponse {
-    pub address: String,
-    pub confirmed: u64,
-    pub unconfirmed: i64,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct GetListUnspentResponse {
-    pub height: isize,
-    pub tx_hash: String,
-    pub tx_pos: usize,
-    pub value: usize,
-    pub address: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetWalletBalanceResponse {
-    pub confirmed: u64,
-    pub unconfirmed: i64,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct AddressDerivation {
-    pub pos: u32,
-    pub mk: MasterKey2,
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct BlockCypherAddress {
-    pub address: String,
-    pub total_received: u64,
-    pub total_sent: u64,
-    pub balance: u64,
-    pub unconfirmed_balance: i64,
-    pub final_balance: u64,
-    pub n_tx: u64,
-    pub unconfirmed_n_tx: u64,
-    pub final_n_tx: u64,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub txrefs: Option<Vec<BlockCypherTxRef>>,
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize, Debug)]
-pub struct BlockCypherTxRef {
-    pub tx_hash: String,
-    pub block_height: isize,
-    pub tx_input_n: isize,
-    pub tx_output_n: usize,
-    pub value: usize,
-    pub ref_balance: u64,
-    pub spent: bool,
-    pub confirmations: u64,
-    pub confirmed: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct BlockCypherRawTx {
-    pub tx: String,
-}
 
 #[derive(Serialize, Deserialize)]
 pub struct Wallet {
@@ -306,7 +237,7 @@ impl Wallet {
 
             let address = bitcoin::Address::p2wpkh(
                 &to_bitcoin_public_key(mk.public.q.get_element()),
-                get_bitcoin_network(),
+                get_bitcoin_network(&self.network),
             )
             .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
 

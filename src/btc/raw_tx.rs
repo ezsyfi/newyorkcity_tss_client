@@ -1,9 +1,7 @@
 use crate::btc::utils::{get_bitcoin_network, get_new_bitcoin_address, to_bitcoin_public_key};
 // // iOS bindings
 use crate::ecdsa::{sign, PrivateShare};
-use crate::wallet::{
-    AddressDerivation, BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse,
-};
+
 use crate::ClientShim;
 use bitcoin::util::bip143::SigHashCache;
 use curv::arithmetic::traits::Converter; // Need for signing
@@ -25,6 +23,7 @@ use serde_json;
 use hex;
 use std::str::FromStr;
 
+use super::dto::{GetListUnspentResponse, GetBalanceResponse, BlockCypherAddress, AddressDerivation};
 use super::utils::{to_bitcoin_address, BTC_TESTNET};
 
 pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
@@ -105,7 +104,7 @@ pub fn create_raw_tx(
         let mut sig_hasher = SigHashCache::new(&mut transaction);
         let sig_hash = sig_hasher.signature_hash(
             i,
-            &bitcoin::Address::p2pkh(&to_bitcoin_public_key(pk), get_bitcoin_network())
+            &bitcoin::Address::p2pkh(&to_bitcoin_public_key(pk), get_bitcoin_network(BTC_TESTNET))
                 .script_pubkey(),
             (selected[i].value as u32).into(),
             SigHashType::All,
@@ -170,6 +169,49 @@ fn select_tx_in(
     selected
 }
 
+fn get_all_addresses_balance(
+    last_derived_pos: u32,
+    private_share: &PrivateShare,
+) -> Vec<GetBalanceResponse> {
+    let response: Vec<GetBalanceResponse> = get_all_addresses(last_derived_pos, &private_share)
+        .into_iter()
+        .map(|a| get_address_balance(&a))
+        .collect();
+
+    // println!("get_all_addresses_balance {:#?}", response);
+    response
+}
+
+fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec<bitcoin::Address> {
+    let init = 0;
+    let last_pos = last_derived_pos;
+
+    let mut response: Vec<bitcoin::Address> = Vec::new();
+
+    for n in init..=last_pos {
+        let mk = private_share
+            .master_key
+            .get_child(vec![BigInt::from(0), BigInt::from(n)]);
+        let bitcoin_address = to_bitcoin_address(BTC_TESTNET, &mk);
+
+        response.push(bitcoin_address);
+    }
+
+    response
+}
+
+fn get_address_balance(address: &bitcoin::Address) -> GetBalanceResponse {
+    let balance_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
+    let res = reqwest::blocking::get(balance_url).unwrap().text().unwrap();
+    let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str()).unwrap();
+
+    GetBalanceResponse {
+        confirmed: address_balance.balance,
+        unconfirmed: address_balance.unconfirmed_balance,
+        address: address.to_string(),
+    }
+}
+
 fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
     let unspent_tx_url =
         BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "?unspentOnly=true";
@@ -194,49 +236,6 @@ fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
     } else {
         Vec::new()
     }
-}
-
-fn get_all_addresses_balance(
-    last_derived_pos: u32,
-    private_share: &PrivateShare,
-) -> Vec<GetBalanceResponse> {
-    let response: Vec<GetBalanceResponse> = get_all_addresses(last_derived_pos, &private_share)
-        .into_iter()
-        .map(|a| get_address_balance(&a))
-        .collect();
-
-    // println!("get_all_addresses_balance {:#?}", response);
-    response
-}
-
-fn get_address_balance(address: &bitcoin::Address) -> GetBalanceResponse {
-    let balance_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
-    let res = reqwest::blocking::get(balance_url).unwrap().text().unwrap();
-    let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str()).unwrap();
-
-    GetBalanceResponse {
-        confirmed: address_balance.balance,
-        unconfirmed: address_balance.unconfirmed_balance,
-        address: address.to_string(),
-    }
-}
-
-fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec<bitcoin::Address> {
-    let init = 0;
-    let last_pos = last_derived_pos;
-
-    let mut response: Vec<bitcoin::Address> = Vec::new();
-
-    for n in init..=last_pos {
-        let mk = private_share
-            .master_key
-            .get_child(vec![BigInt::from(0), BigInt::from(n)]);
-        let bitcoin_address = to_bitcoin_address(BTC_TESTNET, &mk);
-
-        response.push(bitcoin_address);
-    }
-
-    response
 }
 
 #[no_mangle]
@@ -295,4 +294,35 @@ pub extern "C" fn get_raw_btc_tx(
     );
 
     CString::new(raw_tx.to_owned()).unwrap().into_raw()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{btc::utils::{get_test_private_share, get_test}, ecdsa::PrivateShare};
+
+    #[test]
+    fn test_get_all_addresses() {
+        let private_share: PrivateShare = get_test_private_share();
+        let address_list = super::get_all_addresses(0, &private_share);
+        assert!(!address_list.is_empty());
+    }
+
+    #[test]
+    fn test_get_all_addresses_balance() {
+        let private_share: PrivateShare = get_test_private_share();
+        let address_balance_list = super::get_all_addresses_balance(0, &private_share);
+        assert!(!address_balance_list.is_empty());
+
+        let address_balance = address_balance_list.get(0).unwrap();
+        assert_eq!(address_balance.confirmed, 0);
+        assert_eq!(address_balance.unconfirmed, 0);
+        assert_eq!(address_balance.address, "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5");
+    }
+
+    #[test]
+    fn test_select_tx_in() {
+        let private_share: PrivateShare = get_test_private_share();
+        let unspent_list = super::select_tx_in(0.0, 0, &private_share);
+        assert!(unspent_list.is_empty());
+    }
 }

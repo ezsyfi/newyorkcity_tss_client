@@ -46,20 +46,3 @@ pub extern "C" fn get_btc_addrs(
         .into_raw()
 }
 
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use crate::{ecdsa::PrivateShare, btc::utils::{to_bitcoin_address, BTC_TESTNET}};
-    const PRIVATE_SHARE_FILENAME: &str = "test-assets/private_share.json";
-    #[test]
-    fn test_derive_new_key() {
-        let data =
-            fs::read_to_string(PRIVATE_SHARE_FILENAME).expect("Unable to load test private_share!");
-        let private_share: PrivateShare = serde_json::from_str(&data).unwrap();
-        let (pos, mk) = super::derive_new_key(&private_share, 0);
-        let address = to_bitcoin_address(BTC_TESTNET, &mk);
-        assert!(!address.to_string().is_empty());
-        assert_eq!(pos, 1);
-    }
-}
