@@ -1,6 +1,6 @@
 on: [push, pull_request]
 
-name: Release
+name: Test
 
 jobs:
   check:

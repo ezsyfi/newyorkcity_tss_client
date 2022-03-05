@@ -2,13 +2,11 @@ on:
   push:
     branches:
       - main
-      # - feature/githubActionBuild
   pull_request:
     branches:
       - main
-      # - feature/githubActionBuild
 
-name: Compile
+name: Build
 
 jobs:
   build:
