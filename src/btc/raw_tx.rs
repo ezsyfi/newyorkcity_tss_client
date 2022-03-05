@@ -23,7 +23,9 @@ use serde_json;
 use hex;
 use std::str::FromStr;
 
-use super::dto::{GetListUnspentResponse, GetBalanceResponse, BlockCypherAddress, AddressDerivation};
+use super::dto::{
+    AddressDerivation, BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse,
+};
 use super::utils::{to_bitcoin_address, BTC_TESTNET};
 
 pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
@@ -298,7 +300,10 @@ pub extern "C" fn get_raw_btc_tx(
 
 #[cfg(test)]
 mod tests {
-    use crate::{btc::utils::{get_test_private_share, get_test}, ecdsa::PrivateShare};
+    use crate::{
+        btc::utils::{get_test, get_test_private_share},
+        ecdsa::PrivateShare,
+    };
 
     #[test]
     fn test_get_all_addresses() {
@@ -316,7 +321,10 @@ mod tests {
         let address_balance = address_balance_list.get(0).unwrap();
         assert_eq!(address_balance.confirmed, 0);
         assert_eq!(address_balance.unconfirmed, 0);
-        assert_eq!(address_balance.address, "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5");
+        assert_eq!(
+            address_balance.address,
+            "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5"
+        );
     }
 
     #[test]

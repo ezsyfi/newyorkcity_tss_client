@@ -9,17 +9,16 @@ extern crate log;
 #[macro_use]
 extern crate failure;
 
-
-pub mod ecdsa;
 pub mod btc;
+pub mod ecdsa;
 pub mod escrow;
 pub mod wallet;
 
 // pub mod eddsa;
 pub mod schnorr;
 
-mod utilities;
 mod tests;
+mod utilities;
 
 type Result<T> = std::result::Result<T, failure::Error>;
 
@@ -41,5 +40,5 @@ impl ClientShim {
     }
 }
 
-pub use curv::{BigInt, arithmetic::traits::Converter};
+pub use curv::{arithmetic::traits::Converter, BigInt};
 // pub use multi_party_eddsa::protocols::aggsig::*;
