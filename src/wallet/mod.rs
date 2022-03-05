@@ -12,9 +12,13 @@ use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
-
-use crate::btc::dto::{AddressDerivation, BlockCypherRawTx, GetWalletBalanceResponse, GetListUnspentResponse, BlockCypherAddress, GetBalanceResponse};
-use crate::btc::utils::{to_bitcoin_address, get_bitcoin_network, derive_new_key, to_bitcoin_public_key};
+use crate::btc::dto::{
+    AddressDerivation, BlockCypherAddress, BlockCypherRawTx, GetBalanceResponse,
+    GetListUnspentResponse, GetWalletBalanceResponse,
+};
+use crate::btc::utils::{
+    derive_new_key, get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key,
+};
 
 use super::btc;
 
@@ -192,7 +196,6 @@ impl Wallet {
         amount_btc: f32,
         client_shim: &ClientShim,
     ) -> String {
-
         let raw_tx_hex = btc::raw_tx::create_raw_tx(
             to_address,
             amount_btc,
@@ -221,7 +224,7 @@ impl Wallet {
 
     pub fn get_new_bitcoin_address(&mut self) -> bitcoin::Address {
         let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
-        let address = to_bitcoin_address(&self.network, &mk );
+        let address = to_bitcoin_address(&self.network, &mk);
 
         self.addresses_derivation_map
             .insert(address.to_string(), AddressDerivation { mk, pos });

@@ -1,8 +1,6 @@
- 
-
+use floating_duration::TimeFormat;
 use serde_json;
 use std::time::Instant;
-use floating_duration::TimeFormat;
 
 use curv::cryptographic_primitives::twoparty::dh_key_exchange_variant_with_pok_comm::*;
 use curv::elliptic::curves::secp256_k1::GE;
@@ -12,9 +10,9 @@ use kms::ecdsa::two_party::*;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 use zk_paillier::zkproofs::SALT_STRING;
 
-use super::types::PrivateShare;
 use super::super::utilities::requests;
 use super::super::ClientShim;
+use super::types::PrivateShare;
 
 // iOS bindings
 use std::ffi::{CStr, CString};
@@ -41,8 +39,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> PrivateShare {
         SALT_STRING,
     );
 
-    let (_, party_two_paillier) =
-        key_gen_second_message.unwrap();
+    let (_, party_two_paillier) = key_gen_second_message.unwrap();
 
     let cc_party_one_first_message: Party1FirstMessage = requests::post(
         client_shim,
