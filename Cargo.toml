@@ -1,16 +1,16 @@
 [package]
-name = "TSS-wallet-mobile"
+name = "newyorkcity_tss_client"
 version = "0.1.4"
 authors = [
     "gbenattar <g.benattar@gmail.com>",
-    "Oded Leiba <odedleiba5@gmail.com"
+    "Oded Leiba <odedleiba5@gmail.com>"
 ]
 edition = "2021"
 
 [lib]
 name = "client_lib"
 path = "src/lib.rs"
-# crate-type = ["staticlib", "cdylib"]
+crate-type = ["staticlib", "cdylib", "lib"]
 
 [[bin]]
 name = "cli"
