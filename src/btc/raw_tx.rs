@@ -300,7 +300,7 @@ pub extern "C" fn get_raw_btc_tx(
 
 #[cfg(test)]
 mod tests {
-    use crate::{btc::utils::{get_test_private_share}, ecdsa::PrivateShare};
+    use crate::{btc::utils::get_test_private_share, ecdsa::PrivateShare};
 
     #[test]
     fn test_get_all_addresses() {
