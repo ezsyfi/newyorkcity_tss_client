@@ -301,7 +301,7 @@ pub extern "C" fn get_raw_btc_tx(
 #[cfg(test)]
 mod tests {
     use crate::{
-        btc::utils::{get_test, get_test_private_share},
+        btc::utils::get_test_private_share,
         ecdsa::PrivateShare,
     };
 
