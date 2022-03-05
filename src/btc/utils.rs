@@ -58,7 +58,9 @@ pub fn get_test_private_share() -> PrivateShare {
 #[cfg(test)]
 mod tests {
     use crate::{
-        btc::utils::{derive_new_key, get_new_bitcoin_address, BTC_TESTNET, get_test_private_share},
+        btc::utils::{
+            derive_new_key, get_new_bitcoin_address, get_test_private_share, BTC_TESTNET,
+        },
         ecdsa::PrivateShare,
     };
     use bitcoin::Network;

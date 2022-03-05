@@ -7,7 +7,6 @@ use crate::ecdsa::PrivateShare;
 use super::utils::{derive_new_key, get_new_bitcoin_address};
 use kms::ecdsa::two_party::MasterKey2;
 
-
 #[derive(Serialize, Deserialize)]
 struct GetBtcAddressFFIResp {
     address: String,
@@ -45,4 +44,3 @@ pub extern "C" fn get_btc_addrs(
         .unwrap()
         .into_raw()
 }
-

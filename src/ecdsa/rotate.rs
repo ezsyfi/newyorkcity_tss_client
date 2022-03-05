@@ -1,15 +1,14 @@
- 
-use super::types::PrivateShare;
 use super::super::utilities::requests;
 use super::super::wallet;
 use super::super::ClientShim;
+use super::types::PrivateShare;
 use curv::cryptographic_primitives::twoparty::coin_flip_optimal_rounds;
 use curv::elliptic::curves::secp256_k1::GE;
 
 use kms::ecdsa::two_party::*;
 use kms::rotation::two_party::party2::Rotation2;
-use zk_paillier::zkproofs::SALT_STRING;
 use std::collections::HashMap;
+use zk_paillier::zkproofs::SALT_STRING;
 
 const ROT_PATH_PRE: &str = "ecdsa/rotate";
 
@@ -39,16 +38,16 @@ pub fn rotate_master_key(wallet: wallet::Wallet, client_shim: &ClientShim) -> wa
         &coin_flip_party1_first_message,
     );
 
-    let result_masterkey2_new = wallet
-        .private_share
-        .master_key
-        .rotate_first_message(&random2, &rotation_party1_first_message, SALT_STRING);
+    let result_masterkey2_new = wallet.private_share.master_key.rotate_first_message(
+        &random2,
+        &rotation_party1_first_message,
+        SALT_STRING,
+    );
     if result_masterkey2_new.is_err() {
         panic!("rotation failed");
     }
 
-    let party_two_master_key_rotated =
-        result_masterkey2_new.unwrap();
+    let party_two_master_key_rotated = result_masterkey2_new.unwrap();
 
     let private_share = PrivateShare {
         id: wallet.private_share.id.clone(),
