@@ -1,5 +1,7 @@
 on:
   push:
+    branches:
+      - main
     tags:
       - v[0-9]+.*
 
@@ -14,7 +16,6 @@ jobs:
         with:
           # (optional) Path to changelog.
           changelog: CHANGELOG.md
-          branch: main
         env:
           # (required) GitHub token for creating GitHub Releases.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
