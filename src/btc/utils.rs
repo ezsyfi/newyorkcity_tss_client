@@ -55,13 +55,6 @@ pub fn get_test_private_share() -> PrivateShare {
         fs::read_to_string(PRIVATE_SHARE_FILENAME).expect("Unable to load test private_share!");
     serde_json::from_str(&data).unwrap()
 }
-
-pub fn get_test() -> PrivateShare {
-    const PRIVATE_SHARE_FILENAME: &str = "test-assets/test.json";
-    let data =
-        fs::read_to_string(PRIVATE_SHARE_FILENAME).expect("Unable to load test private_share!");
-    serde_json::from_str(&data).unwrap()
-}
 #[cfg(test)]
 mod tests {
     use crate::{
