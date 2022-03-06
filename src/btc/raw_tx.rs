@@ -73,12 +73,12 @@ pub fn create_raw_tx(
     let relay_fees = 10_000; // Relay fees for miner
     let amount_satoshi = (amount_btc * 100_000_000 as f32) as u64;
 
-    let (pos, mk) = derive_new_key(private_share, last_derived_pos);
+    let (change_pos, change_mk) = derive_new_key(private_share, last_derived_pos);
     let change_address = get_new_bitcoin_address(private_share, last_derived_pos);
     let change_address_payload = BtcAddressFFIResp {
         address: change_address.to_string(),
-        pos,
-        mk,
+        pos: change_pos,
+        mk: change_mk,
     };
 
     let total_selected = selected
