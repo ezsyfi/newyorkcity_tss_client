@@ -90,6 +90,7 @@ fn get_signature(
 }
 
 #[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn sign_message(
     c_endpoint: *const c_char,
     c_auth_token: *const c_char,

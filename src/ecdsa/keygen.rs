@@ -88,6 +88,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> PrivateShare {
 }
 
 #[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn get_client_master_key(
     c_endpoint: *const c_char,
     c_auth_token: *const c_char,

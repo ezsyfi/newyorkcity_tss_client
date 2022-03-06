@@ -8,13 +8,14 @@ use super::utils::{derive_new_key, get_new_bitcoin_address};
 use kms::ecdsa::two_party::MasterKey2;
 
 #[derive(Serialize, Deserialize)]
-struct GetBtcAddressFFIResp {
-    address: String,
-    pos: u32,
-    mk: MasterKey2,
+pub struct BtcAddressFFIResp {
+    pub address: String,
+    pub pos: u32,
+    pub mk: MasterKey2,
 }
 
 #[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn get_btc_addrs(
     c_private_share_json: *const c_char,
     c_last_derived_pos: u32,
@@ -24,23 +25,21 @@ pub extern "C" fn get_btc_addrs(
         Ok(s) => s,
         Err(_) => panic!("Error while decoding raw private share"),
     };
-    let private_share: PrivateShare = serde_json::from_str(&private_share_json).unwrap();
+    let private_share: PrivateShare = serde_json::from_str(private_share_json).unwrap();
 
     let (pos, mk) = derive_new_key(&private_share, c_last_derived_pos);
     let address = get_new_bitcoin_address(&private_share, c_last_derived_pos);
 
-    let get_addr_resp = GetBtcAddressFFIResp {
+    let get_addr_resp = BtcAddressFFIResp {
         address: address.to_string(),
-        pos: pos,
-        mk: mk,
+        pos,
+        mk,
     };
 
     let get_addr_resp_json = match serde_json::to_string(&get_addr_resp) {
-        Ok(share) => share,
+        Ok(addrs_resp) => addrs_resp,
         Err(_) => panic!("Error while performing get btc addrs"),
     };
 
-    CString::new(get_addr_resp_json.to_owned())
-        .unwrap()
-        .into_raw()
+    CString::new(get_addr_resp_json).unwrap().into_raw()
 }
