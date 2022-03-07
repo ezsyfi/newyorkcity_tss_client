@@ -1,36 +1,259 @@
-on:
-  push:
-    branches:
-      - main
-    tags:
-      - v[0-9]+.*
+name: Build and upload binaries to release
 
-name: Release
+on:
+  repository_dispatch:
+    types: [tag-created]
 
 jobs:
-  build_and_release:
-    runs-on: ubuntu-latest
+  release:
+    name: Build and Release
+    runs-on: ${{ matrix.triple.os }}
+    strategy:
+      matrix:
+        triple:
+          # x86_64 linux, bin
+          - { 
+              os: ubuntu-latest,
+              target: "x86_64-unknown-linux-gnu",name: Build and upload binaries to release
+
+on:
+  repository_dispatch:
+    types: [tag-created]
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ${{ matrix.triple.os }}
+    strategy:
+      matrix:
+        triple:
+          # x86_64 linux, bin
+          - { 
+              os: ubuntu-latest,
+              target: "x86_64-unknown-linux-gnu",
+              cross: false,
+              artifact_name: cli,
+              asset_name: cli-x86_64-unknown-linux-gnu
+            }
+          # x86_64 linux, lib
+          - { 
+              os: ubuntu-latest,
+              target: "x86_64-unknown-linux-gnu",
+              cross: false,
+              artifact_name: libclient.so,
+              asset_name: libclient-x86_64-unknown-linux-gnu.so
+            }
+          # aarch64 android, lib
+          - {
+              os: ubuntu-latest,
+              target: aarch64-linux-android,
+              cross: true,
+              artifact_name: libclient.a,
+              asset_name: libclient-aarch64-linux-android.a
+            }
+          # armv7 android, lib
+          - {
+              os: ubuntu-latest,
+              target: armv7-linux-androideabi,
+              cross: true,
+              artifact_name: libclient.a,
+              asset_name: libclient-armv7-linux-androideabi.a
+            }
+          # aarch64 ios, lib
+          - {
+              os: macos-latest,
+              target: aarch64-apple-ios,
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-aarch64-apple-ios.a
+            }
+          # x86_64 ios, lib
+          - {
+              os: macos-latest,
+              target: x86_64-apple-ios,
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-x86_64-apple-ios.a
+            }
+          # universal ios, lib
+          - {
+              os: macos-latest,
+              target: universal,
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-universal-ios.a
+            }
+          # x86_64 macOS, bin
+          - {
+              os: macos-latest,
+              target: x86_64-apple-darwin,
+              cross: false,
+              artifact_name: cli,
+              asset_name: cli-x86_64-apple-darwin
+            }
+          # x86_64 macOS, lib
+          - {
+              os: macos-latest,
+              target: "x86_64-apple-darwin",
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-x86_64-apple-darwin.a
+            }
+          # x86_64 macOS, dylib
+          - { 
+              os: macos-latest,
+              target: x86_64-apple-darwin,
+              cross: false,
+              artifact_name: libclient.dylib,
+              asset_name: libclient-x86_64-apple-darwin.dylib
+            }
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: |
+          TARGET=${{ matrix.triple.target }}
+          case $TARGET in
+            "aarch64-linux-android" | "armv7-linux-androideabi")
+              rustup target add $TARGET
+              cargo install cargo-ndk
+              cargo ndk --target $TARGET build --lib --bin cli --release
+              ;;
+            "aarch64-apple-ios" | "x86_64-apple-ios")
+              rustup target add $TARGET
+              cargo install cargo-lipo
+              cargo lipo --targets $TARGET --release
+              ;;
+            "universal")
+              rustup target add aarch64-apple-ios x86_64-apple-ios
+              cargo install cargo-lipo
+              cargo lipo --release
+              ;;
+            *)
+              rustup target add $TARGET
+              cargo build --target $TARGET --lib --bin cli --release
+              ;;
+          esac
+          ls -la target/$TARGET/release
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v1-release
         with:
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/${{ matrix.triple.target }}/release/${{ matrix.triple.artifact_name }}
+          asset_name: ${{ matrix.triple.asset_name }}
+          tag: ${{ github.event.client_payload.new_version }}
+          overwrite: true
+              cross: false,
+              artifact_name: cli,
+              asset_name: cli-x86_64-unknown-linux-gnu
+            }
+          # x86_64 linux, lib
+          - { 
+              os: ubuntu-latest,
+              target: "x86_64-unknown-linux-gnu",
+              cross: false,
+              artifact_name: libclient.so,
+              asset_name: libclient-x86_64-unknown-linux-gnu.so
+            }
+          # aarch64 android, lib
+          - {
+              os: ubuntu-latest,
+              target: aarch64-linux-android,
+              cross: true,
+              artifact_name: libclient.a,
+              asset_name: libclient-aarch64-linux-android.a
+            }
+          # armv7 android, lib
+          - {
+              os: ubuntu-latest,
+              target: armv7-linux-androideabi,
+              cross: true,
+              artifact_name: libclient.a,
+              asset_name: libclient-armv7-linux-androideabi.a
+            }
+          # aarch64 ios, lib
+          - {
+              os: macos-latest,
+              target: aarch64-apple-ios,
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-aarch64-apple-ios.a
+            }
+          # x86_64 ios, lib
+          - {
+              os: macos-latest,
+              target: x86_64-apple-ios,
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-x86_64-apple-ios.a
+            }
+          # universal ios, lib
+          - {
+              os: macos-latest,
+              target: universal,
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-universal-ios.a
+            }
+          # x86_64 macOS, bin
+          - {
+              os: macos-latest,
+              target: x86_64-apple-darwin,
+              cross: false,
+              artifact_name: cli,
+              asset_name: cli-x86_64-apple-darwin
+            }
+          # x86_64 macOS, lib
+          - {
+              os: macos-latest,
+              target: "x86_64-apple-darwin",
+              cross: false,
+              artifact_name: libclient.a,
+              asset_name: libclient-x86_64-apple-darwin.a
+            }
+          # x86_64 macOS, dylib
+          - { 
+              os: macos-latest,
+              target: x86_64-apple-darwin,
+              cross: false,
+              artifact_name: libclient.dylib,
+              asset_name: libclient-x86_64-apple-darwin.dylib
+            }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build project
+        run: |
+          TARGET=${{ matrix.triple.target }}
+          case $TARGET in
+            "aarch64-linux-android" | "armv7-linux-androideabi")
+              rustup target add $TARGET
+              cargo install cargo-ndk
+              cargo ndk --target $TARGET build --lib --bin cli --release
+              ;;
+            "aarch64-apple-ios" | "x86_64-apple-ios")
+              rustup target add $TARGET
+              cargo install cargo-lipo
+              cargo lipo --targets $TARGET --release
+              ;;
+            "universal")
+              rustup target add aarch64-apple-ios x86_64-apple-ios
+              cargo install cargo-lipo
+              cargo lipo --release
+              ;;
+            *)
+              rustup target add $TARGET
+              cargo build --target $TARGET --lib --bin cli --release
+              ;;
+          esac
+          ls -la target/$TARGET/release
+      - name: Upload binary to release
+        uses: svenstaro/upload-release-action@v1-release
         with:
-          command: build
-          args: --release
-      - uses: taiki-e/create-gh-release-action@v1
-        with:
-          # (optional) Path to changelog.
-          changelog: CHANGELOG.md
-        env:
-          # (required) GitHub token for creating GitHub Releases.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: taiki-e/upload-rust-binary-action@v1
-        with:
-          # (required) Binary name (non-extension portion of filename) to build and upload.
-          bin: ...
-        env:
-          # (required) GitHub token for uploading assets to GitHub Releases.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/${{ matrix.triple.target }}/release/${{ matrix.triple.artifact_name }}
+          asset_name: ${{ matrix.triple.asset_name }}
+          tag: ${{ github.event.client_payload.new_version }}
+          overwrite: true
