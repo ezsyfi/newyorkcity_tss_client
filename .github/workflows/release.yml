@@ -100,7 +100,7 @@ jobs:
           TARGET=${{ matrix.triple.target }}
           case $TARGET in
             "aarch64-linux-android" | "armv7-linux-androideabi")
-              sudo apt update && sudo apt install musl-tools pkg-config libssl-dev
+              sudo apt update && sudo apt install linux-musl-dev musl-tools pkg-config libssl-dev
               rustup target add $TARGET
               cargo install cargo-ndk
               cargo ndk --target $TARGET build --lib --bin cli --release
@@ -116,7 +116,7 @@ jobs:
               cargo lipo --release
               ;;
             *)
-              sudo apt update && sudo apt install musl-tools pkg-config libssl-dev
+              sudo apt update && sudo apt install linux-musl-dev musl-tools pkg-config libssl-dev
               rustup target add $TARGET
               cargo build --target $TARGET --lib --bin cli --release
               ;;
