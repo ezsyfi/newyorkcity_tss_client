@@ -1,4 +1,7 @@
-use crate::btc::utils::{get_bitcoin_network, get_new_bitcoin_address, to_bitcoin_public_key};
+use crate::btc::address::BtcAddressFFIResp;
+use crate::btc::utils::{
+    derive_new_key, get_bitcoin_network, get_new_bitcoin_address, to_bitcoin_public_key,
+};
 // // iOS bindings
 use crate::ecdsa::{sign, PrivateShare};
 
@@ -30,6 +33,12 @@ use super::utils::{to_bitcoin_address, BTC_TESTNET};
 
 pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
 
+#[derive(Serialize, Deserialize)]
+pub struct BtcRawTxFFIResp {
+    pub raw_tx_hex: String,
+    pub change_address_payload: BtcAddressFFIResp,
+}
+
 pub fn create_raw_tx(
     to_address: String,
     amount_btc: f32,
@@ -37,12 +46,12 @@ pub fn create_raw_tx(
     last_derived_pos: u32,
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, AddressDerivation>,
-) -> String {
+) -> Option<BtcRawTxFFIResp> {
     let selected = select_tx_in(amount_btc, last_derived_pos, private_share);
 
     if selected.is_empty() {
         println!("Not enough fund");
-        return "".to_string();
+        return None;
     }
 
     /* Specify "vin" array aka Transaction Inputs */
@@ -63,7 +72,15 @@ pub fn create_raw_tx(
     /* Specify "vout" array aka Transaction Outputs */
     let relay_fees = 10_000; // Relay fees for miner
     let amount_satoshi = (amount_btc * 100_000_000 as f32) as u64;
+
+    let (change_pos, change_mk) = derive_new_key(private_share, last_derived_pos);
     let change_address = get_new_bitcoin_address(private_share, last_derived_pos);
+    let change_address_payload = BtcAddressFFIResp {
+        address: change_address.to_string(),
+        pos: change_pos,
+        mk: change_mk,
+    };
+
     let total_selected = selected
         .clone()
         .into_iter()
@@ -115,7 +132,7 @@ pub fn create_raw_tx(
         let signature = sign(
             client_shim,
             BigInt::from_hex(&hex::encode(&sig_hash[..])).unwrap(),
-            &mk,
+            mk,
             BigInt::from(0),
             BigInt::from(address_derivation.pos),
             &private_share.id,
@@ -130,13 +147,17 @@ pub fn create_raw_tx(
             .unwrap()
             .serialize_der()
             .to_vec();
-        sig_vec.push(01);
+        sig_vec.push(1);
 
         let pk_vec = pk.serialize().to_vec();
 
         signed_transaction.input[i].witness = vec![sig_vec, pk_vec];
     }
-    hex::encode(serialize(&signed_transaction))
+    // (hex::encode(serialize(&signed_transaction)), Some(change_addr_resp))
+    Some(BtcRawTxFFIResp {
+        raw_tx_hex: hex::encode(serialize(&signed_transaction)),
+        change_address_payload,
+    })
 }
 
 // TODO: handle fees
@@ -148,10 +169,10 @@ fn select_tx_in(
 ) -> Vec<GetListUnspentResponse> {
     // greedy selection
     let list_unspent: Vec<GetListUnspentResponse> =
-        get_all_addresses_balance(last_derived_pos, &private_share)
+        get_all_addresses_balance(last_derived_pos, private_share)
             .into_iter()
             //            .filter(|b| b.confirmed > 0)
-            .map(|a| list_unspent_for_addresss(a.address.to_string()))
+            .map(|a| list_unspent_for_addresss(a.address))
             .flatten()
             .sorted_by(|a, b| a.value.partial_cmp(&b.value).unwrap())
             .into_iter()
@@ -175,7 +196,7 @@ fn get_all_addresses_balance(
     last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Vec<GetBalanceResponse> {
-    let response: Vec<GetBalanceResponse> = get_all_addresses(last_derived_pos, &private_share)
+    let response: Vec<GetBalanceResponse> = get_all_addresses(last_derived_pos, private_share)
         .into_iter()
         .map(|a| get_address_balance(&a))
         .collect();
@@ -215,8 +236,7 @@ fn get_address_balance(address: &bitcoin::Address) -> GetBalanceResponse {
 }
 
 fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
-    let unspent_tx_url =
-        BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "?unspentOnly=true";
+    let unspent_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
     let res = reqwest::blocking::get(unspent_tx_url)
         .unwrap()
         .text()
@@ -241,6 +261,7 @@ fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
 }
 
 #[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn get_raw_btc_tx(
     c_endpoint: *const c_char,
     c_auth_token: *const c_char,
@@ -274,7 +295,7 @@ pub extern "C" fn get_raw_btc_tx(
         Ok(s) => s,
         Err(_) => panic!("Error while decoding raw private share"),
     };
-    let private_share: PrivateShare = serde_json::from_str(&private_share_json).unwrap();
+    let private_share: PrivateShare = serde_json::from_str(private_share_json).unwrap();
 
     let raw_addresses_derivation_map_json = unsafe { CStr::from_ptr(c_addresses_derivation_map) };
     let addresses_derivation_map_json = match raw_addresses_derivation_map_json.to_str() {
@@ -282,11 +303,11 @@ pub extern "C" fn get_raw_btc_tx(
         Err(_) => panic!("Error while decoding raw addresses derivation map"),
     };
     let addresses_derivation_map: HashMap<String, AddressDerivation> =
-        serde_json::from_str(&addresses_derivation_map_json).unwrap();
+        serde_json::from_str(addresses_derivation_map_json).unwrap();
 
     let client_shim = ClientShim::new(endpoint.to_string(), None);
 
-    let raw_tx = create_raw_tx(
+    let raw_tx_opt = create_raw_tx(
         to_address.to_owned(),
         c_amount_btc,
         &client_shim,
@@ -295,7 +316,17 @@ pub extern "C" fn get_raw_btc_tx(
         &addresses_derivation_map,
     );
 
-    CString::new(raw_tx.to_owned()).unwrap().into_raw()
+    let raw_tx = match raw_tx_opt {
+        Some(tx) => tx,
+        None => return std::ptr::null_mut(),
+    };
+
+    let raw_tx_json = match serde_json::to_string(&raw_tx) {
+        Ok(tx_resp) => tx_resp,
+        Err(_) => panic!("Error while performing get btc addrs"),
+    };
+
+    CString::new(raw_tx_json).unwrap().into_raw()
 }
 
 #[cfg(test)]

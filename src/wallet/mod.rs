@@ -196,7 +196,7 @@ impl Wallet {
         amount_btc: f32,
         client_shim: &ClientShim,
     ) -> String {
-        let raw_tx_hex = btc::raw_tx::create_raw_tx(
+        let raw_tx_opt = btc::raw_tx::create_raw_tx(
             to_address,
             amount_btc,
             client_shim,
@@ -205,9 +205,17 @@ impl Wallet {
             &self.addresses_derivation_map,
         );
 
+        let raw_tx = match raw_tx_opt {
+            Some(tx) => tx,
+            None => {
+                println!("Unable to create raw transaction");
+                return "".to_string();
+            }
+        };
+
         let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
         let raw_tx = BlockCypherRawTx {
-            tx: raw_tx_hex.clone(),
+            tx: raw_tx.raw_tx_hex.clone(),
         };
         let res = reqwest::blocking::Client::new()
             .post(raw_tx_url)
