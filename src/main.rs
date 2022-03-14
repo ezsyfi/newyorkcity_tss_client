@@ -48,7 +48,7 @@ fn main() {
 
         if matches.is_present("new-address") {
             let address = wallet.get_new_bitcoin_address();
-            println!("Network: [{}], Address: [{}]", network, address.to_string());
+            println!("Network: [{}], Address: [{}]", network, address);
             wallet.save();
         } else if matches.is_present("get-balance") {
             let balance = wallet.get_balance();
