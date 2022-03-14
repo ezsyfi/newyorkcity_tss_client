@@ -143,7 +143,11 @@ pub extern "C" fn sign_message(
 
     let y: BigInt = BigInt::from(c_y_pos);
 
-    let client_shim = ClientShim::new(endpoint.to_owned(), Some(auth_token.to_owned()), user_id.to_owned());
+    let client_shim = ClientShim::new(
+        endpoint.to_owned(),
+        Some(auth_token.to_owned()),
+        user_id.to_owned(),
+    );
 
     let mk: MasterKey2 = serde_json::from_str(master_key_json).unwrap();
 

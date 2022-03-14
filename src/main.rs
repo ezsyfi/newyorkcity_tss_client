@@ -27,7 +27,11 @@ fn main() {
     let hm = settings.try_into::<HashMap<String, String>>().unwrap();
     let endpoint = hm.get("endpoint").unwrap();
 
-    let client_shim = ClientShim::new(endpoint.to_string(), Some("cli_app_token".to_owned()), "cli_app".to_owned());
+    let client_shim = ClientShim::new(
+        endpoint.to_string(),
+        Some("cli_app_token".to_owned()),
+        "cli_app".to_owned(),
+    );
 
     let network = "testnet".to_string();
 

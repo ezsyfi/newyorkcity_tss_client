@@ -112,7 +112,11 @@ pub extern "C" fn get_client_master_key(
         Err(_) => panic!("Error while decoding raw user id"),
     };
 
-    let client_shim = ClientShim::new(endpoint.to_owned(), Some(auth_token.to_owned()), user_id.to_owned());
+    let client_shim = ClientShim::new(
+        endpoint.to_owned(),
+        Some(auth_token.to_owned()),
+        user_id.to_owned(),
+    );
 
     let private_share: PrivateShare = get_master_key(&client_shim);
 
@@ -121,7 +125,5 @@ pub extern "C" fn get_client_master_key(
         Err(_) => panic!("Error while performing keygen to endpoint {}", endpoint),
     };
 
-    CString::new(private_share_json)
-        .unwrap()
-        .into_raw()
+    CString::new(private_share_json).unwrap().into_raw()
 }
