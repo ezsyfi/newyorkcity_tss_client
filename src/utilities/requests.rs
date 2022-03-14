@@ -31,6 +31,7 @@ where
 
     if client_shim.auth_token.is_some() {
         b = b.bearer_auth(client_shim.auth_token.clone().unwrap());
+        b = b.header("user_id", client_shim.user_id.clone());
     }
 
     let res = b.json(&body).send();

@@ -171,7 +171,7 @@ fn select_tx_in(
     let list_unspent: Vec<GetListUnspentResponse> =
         get_all_addresses_balance(last_derived_pos, private_share)
             .into_iter()
-            //            .filter(|b| b.confirmed > 0)
+            // .filter(|b| b.confirmed > 0)
             .map(|a| list_unspent_for_addresss(a.address))
             .flatten()
             .sorted_by(|a, b| a.value.partial_cmp(&b.value).unwrap())
@@ -265,6 +265,7 @@ fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
 pub extern "C" fn get_raw_btc_tx(
     c_endpoint: *const c_char,
     c_auth_token: *const c_char,
+    c_user_id: *const c_char,
     c_to_address: *const c_char,
     c_amount_btc: f32,
     c_last_derived_pos: u32,
@@ -277,11 +278,16 @@ pub extern "C" fn get_raw_btc_tx(
         Err(_) => panic!("Error while decoding raw endpoint"),
     };
 
-    // TODO: Implement after complete auth feature on server
     let raw_auth_json = unsafe { CStr::from_ptr(c_auth_token) };
-    let _auth = match raw_auth_json.to_str() {
+    let auth = match raw_auth_json.to_str() {
         Ok(s) => s,
         Err(_) => panic!("Error while decoding raw auth token"),
+    };
+
+    let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
+    let user_id = match user_id_json.to_str() {
+        Ok(s) => s,
+        Err(_) => panic!("Error while decoding raw user id"),
     };
 
     let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
@@ -305,7 +311,11 @@ pub extern "C" fn get_raw_btc_tx(
     let addresses_derivation_map: HashMap<String, AddressDerivation> =
         serde_json::from_str(addresses_derivation_map_json).unwrap();
 
-    let client_shim = ClientShim::new(endpoint.to_string(), None);
+    let client_shim = ClientShim::new(
+        endpoint.to_owned(),
+        Some(auth.to_owned()),
+        user_id.to_owned(),
+    );
 
     let raw_tx_opt = create_raw_tx(
         to_address.to_owned(),

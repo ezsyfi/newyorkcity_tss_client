@@ -41,7 +41,7 @@ pub fn sign(
 
     let party_two_sign_message = mk.sign_second_message(
         &eph_ec_key_pair_party2,
-        eph_comm_witness.clone(),
+        eph_comm_witness,
         &sign_party_one_first_message,
         &message,
     );
@@ -52,7 +52,7 @@ pub fn sign(
         party_two_sign_message,
         x_pos,
         y_pos,
-        &id,
+        id,
     ) {
         Ok(s) => s,
         Err(e) => return Err(format_err!("ecdsa::get_signature failed failed: {}", e)),
@@ -94,6 +94,7 @@ fn get_signature(
 pub extern "C" fn sign_message(
     c_endpoint: *const c_char,
     c_auth_token: *const c_char,
+    c_user_id: *const c_char,
     c_message_le_hex: *const c_char,
     c_master_key_json: *const c_char,
     c_x_pos: i32,
@@ -110,6 +111,12 @@ pub extern "C" fn sign_message(
     let auth_token = match raw_auth_token.to_str() {
         Ok(s) => s,
         Err(e) => return error_to_c_string(format_err!("decoding raw auth_token failed: {}", e)),
+    };
+
+    let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
+    let user_id = match user_id_json.to_str() {
+        Ok(s) => s,
+        Err(_) => panic!("Error while decoding raw user id"),
     };
 
     let raw_message_hex = unsafe { CStr::from_ptr(c_message_le_hex) };
@@ -136,7 +143,7 @@ pub extern "C" fn sign_message(
 
     let y: BigInt = BigInt::from(c_y_pos);
 
-    let client_shim = ClientShim::new(endpoint.to_string(), Some(auth_token.to_string()));
+    let client_shim = ClientShim::new(endpoint.to_owned(), Some(auth_token.to_owned()), user_id.to_owned());
 
     let mk: MasterKey2 = serde_json::from_str(master_key_json).unwrap();
 
@@ -166,5 +173,5 @@ pub extern "C" fn sign_message(
         }
     };
 
-    CString::new(signature_json.to_owned()).unwrap().into_raw()
+    CString::new(signature_json).unwrap().into_raw()
 }
