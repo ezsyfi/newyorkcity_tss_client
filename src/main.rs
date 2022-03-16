@@ -27,7 +27,11 @@ fn main() {
     let hm = settings.try_into::<HashMap<String, String>>().unwrap();
     let endpoint = hm.get("endpoint").unwrap();
 
-    let client_shim = ClientShim::new(endpoint.to_string(), None);
+    let client_shim = ClientShim::new(
+        endpoint.to_string(),
+        Some("cli_app_token".to_owned()),
+        "cli_app".to_owned(),
+    );
 
     let network = "testnet".to_string();
 
@@ -44,7 +48,7 @@ fn main() {
 
         if matches.is_present("new-address") {
             let address = wallet.get_new_bitcoin_address();
-            println!("Network: [{}], Address: [{}]", network, address.to_string());
+            println!("Network: [{}], Address: [{}]", network, address);
             wallet.save();
         } else if matches.is_present("get-balance") {
             let balance = wallet.get_balance();

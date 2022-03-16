@@ -44,16 +44,15 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    pub fn new(client_shim: &ClientShim, net: &String) -> Wallet {
+    pub fn new(client_shim: &ClientShim, net: &str) -> Wallet {
         let id = Uuid::new_v4().to_string();
         let private_share = ecdsa::get_master_key(client_shim);
         let last_derived_pos = 0;
         let addresses_derivation_map = HashMap::new();
-        let network = net.clone();
 
         Wallet {
             id,
-            network,
+            network: net.to_owned(),
             private_share,
             last_derived_pos,
             addresses_derivation_map,
@@ -117,7 +116,7 @@ impl Wallet {
 
     pub fn recover_and_save_share(
         escrow_service: escrow::Escrow,
-        net: &String,
+        net: &str,
         client_shim: &ClientShim,
     ) -> Wallet {
         let g: GE = ECPoint::generator();
@@ -145,11 +144,10 @@ impl Wallet {
 
         let id = Uuid::new_v4().to_string();
         let addresses_derivation_map = HashMap::new(); //TODO: add a fucntion to recreate
-        let network = net.clone();
 
         let new_wallet = Wallet {
             id,
-            network,
+            network: net.to_owned(),
             private_share: PrivateShare {
                 master_key: client_master_key_recovered,
                 id: key_id,
@@ -215,7 +213,7 @@ impl Wallet {
 
         let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
         let raw_tx = BlockCypherRawTx {
-            tx: raw_tx.raw_tx_hex.clone(),
+            tx: raw_tx.raw_tx_hex,
         };
         let res = reqwest::blocking::Client::new()
             .post(raw_tx_url)
@@ -285,7 +283,7 @@ impl Wallet {
     /* PRIVATE */
     fn list_unspent_for_addresss(&self, address: String) -> Vec<GetListUnspentResponse> {
         let unspent_tx_url =
-            BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "?unspentOnly=true";
+            BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
         let res = reqwest::blocking::get(unspent_tx_url)
             .unwrap()
             .text()
