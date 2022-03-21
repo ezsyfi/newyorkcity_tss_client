@@ -35,9 +35,11 @@ fn main() {
 
     let network = "testnet".to_string();
 
-    if let Some(_matches) = matches.subcommand_matches("create-wallet") {
+    if let Some(matches) = matches.subcommand_matches("create-wallet") {
         println!("Network: [{}], Creating wallet", network);
-        let wallet = wallet::Wallet::new(&client_shim, &network);
+        let coin_type: &str = matches.value_of("coin-type").unwrap();
+        println!("{}", coin_type);
+        let wallet = wallet::Wallet::new(&client_shim, &network, coin_type);
         wallet.save();
         println!("Network: [{}], Wallet saved to disk", &network);
 

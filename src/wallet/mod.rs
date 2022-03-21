@@ -30,13 +30,14 @@ use super::ClientShim;
 use std::collections::HashMap;
 
 // TODO: move that to a config file and double check electrum server addresses
-const WALLET_FILENAME: &str = "wallet/wallet.data";
+const WALLET_FILENAME: &str = "wallet/wallet.json";
 const BACKUP_FILENAME: &str = "wallet/backup.data";
 const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
 
 #[derive(Serialize, Deserialize)]
 pub struct Wallet {
     pub id: String,
+    pub coin_type: String,
     pub network: String,
     pub private_share: PrivateShare,
     pub last_derived_pos: u32,
@@ -44,7 +45,7 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    pub fn new(client_shim: &ClientShim, net: &str) -> Wallet {
+    pub fn new(client_shim: &ClientShim, net: &str, c_type: &str) -> Wallet {
         let id = Uuid::new_v4().to_string();
         let private_share = ecdsa::get_master_key(client_shim);
         let last_derived_pos = 0;
@@ -52,6 +53,7 @@ impl Wallet {
 
         Wallet {
             id,
+            coin_type: c_type.to_owned(),
             network: net.to_owned(),
             private_share,
             last_derived_pos,
@@ -147,6 +149,7 @@ impl Wallet {
 
         let new_wallet = Wallet {
             id,
+            coin_type: "btc".to_owned(),
             network: net.to_owned(),
             private_share: PrivateShare {
                 master_key: client_master_key_recovered,
