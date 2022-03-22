@@ -1,11 +1,12 @@
-use crate::btc::address::BtcAddressFFIResp;
 use crate::btc::utils::{
-    derive_new_key, get_bitcoin_network, get_new_bitcoin_address, to_bitcoin_public_key,
+    get_bitcoin_network, get_new_bitcoin_address, to_bitcoin_public_key,
 };
 // // iOS bindings
 use crate::ecdsa::{sign, PrivateShare};
 
 use crate::ClientShim;
+use crate::utilities::dto::{MKPosDerivation, GetListUnspentResponse, GetBalanceResponse, BlockCypherAddress, MKPosAddressFFI};
+use crate::utilities::hd_wallet::derive_new_key;
 use bitcoin::util::bip143::SigHashCache;
 use curv::arithmetic::traits::Converter; // Need for signing
 use curv::elliptic::curves::traits::ECPoint;
@@ -26,9 +27,6 @@ use serde_json;
 use hex;
 use std::str::FromStr;
 
-use super::dto::{
-    AddressDerivation, BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse,
-};
 use super::utils::{to_bitcoin_address, BTC_TESTNET};
 
 pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
@@ -36,7 +34,7 @@ pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; 
 #[derive(Serialize, Deserialize)]
 pub struct BtcRawTxFFIResp {
     pub raw_tx_hex: String,
-    pub change_address_payload: BtcAddressFFIResp,
+    pub change_address_payload: MKPosAddressFFI,
 }
 
 pub fn create_raw_tx(
@@ -45,7 +43,7 @@ pub fn create_raw_tx(
     client_shim: &ClientShim,
     last_derived_pos: u32,
     private_share: &PrivateShare,
-    addresses_derivation_map: &HashMap<String, AddressDerivation>,
+    addresses_derivation_map: &HashMap<String, MKPosDerivation>,
 ) -> Option<BtcRawTxFFIResp> {
     let selected = select_tx_in(amount_btc, last_derived_pos, private_share);
 
@@ -75,7 +73,7 @@ pub fn create_raw_tx(
 
     let (change_pos, change_mk) = derive_new_key(private_share, last_derived_pos);
     let change_address = get_new_bitcoin_address(private_share, last_derived_pos);
-    let change_address_payload = BtcAddressFFIResp {
+    let change_address_payload = MKPosAddressFFI {
         address: change_address.to_string(),
         pos: change_pos,
         mk: change_mk,
@@ -308,7 +306,7 @@ pub extern "C" fn get_raw_btc_tx(
         Ok(s) => s,
         Err(_) => panic!("Error while decoding raw addresses derivation map"),
     };
-    let addresses_derivation_map: HashMap<String, AddressDerivation> =
+    let addresses_derivation_map: HashMap<String, MKPosDerivation> =
         serde_json::from_str(addresses_derivation_map_json).unwrap();
 
     let client_shim = ClientShim::new(

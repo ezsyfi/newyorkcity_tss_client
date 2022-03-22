@@ -3,10 +3,10 @@ use std::fs;
 use bitcoin::{self, Network};
 use curv::elliptic::curves::secp256_k1::PK;
 use curv::elliptic::curves::traits::ECPoint;
-use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 
 use crate::ecdsa::PrivateShare;
+use crate::utilities::hd_wallet::derive_new_key;
 
 pub const BTC_TESTNET: &str = "testnet";
 
@@ -34,16 +34,6 @@ pub fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
     }
 }
 
-pub fn derive_new_key(private_share: &PrivateShare, pos: u32) -> (u32, MasterKey2) {
-    let last_pos: u32 = pos + 1;
-
-    let last_child_master_key = private_share
-        .master_key
-        .get_child(vec![BigInt::from(0), BigInt::from(last_pos)]);
-
-    (last_pos, last_child_master_key)
-}
-
 pub fn get_bitcoin_network(nw: &str) -> Network {
     nw.to_owned().parse::<Network>().unwrap()
 }
@@ -58,9 +48,9 @@ pub fn get_test_private_share() -> PrivateShare {
 mod tests {
     use crate::{
         btc::utils::{
-            derive_new_key, get_new_bitcoin_address, get_test_private_share, BTC_TESTNET,
+            get_new_bitcoin_address, get_test_private_share, BTC_TESTNET,
         },
-        ecdsa::PrivateShare,
+        ecdsa::PrivateShare, utilities::hd_wallet::derive_new_key,
     };
     use bitcoin::Network;
     use curv::elliptic::curves::traits::ECPoint;

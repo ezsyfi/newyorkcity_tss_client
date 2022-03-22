@@ -3,16 +3,10 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 use crate::ecdsa::PrivateShare;
+use crate::utilities::dto::MKPosAddressFFI;
+use crate::utilities::hd_wallet::derive_new_key;
 
-use super::utils::{derive_new_key, get_new_bitcoin_address};
-use kms::ecdsa::two_party::MasterKey2;
-
-#[derive(Serialize, Deserialize)]
-pub struct BtcAddressFFIResp {
-    pub address: String,
-    pub pos: u32,
-    pub mk: MasterKey2,
-}
+use super::utils::{ BTC_TESTNET, to_bitcoin_address};
 
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -28,9 +22,9 @@ pub extern "C" fn get_btc_addrs(
     let private_share: PrivateShare = serde_json::from_str(private_share_json).unwrap();
 
     let (pos, mk) = derive_new_key(&private_share, c_last_derived_pos);
-    let address = get_new_bitcoin_address(&private_share, c_last_derived_pos);
+    let address = to_bitcoin_address(BTC_TESTNET, &mk);
 
-    let get_addr_resp = BtcAddressFFIResp {
+    let get_addr_resp = MKPosAddressFFI {
         address: address.to_string(),
         pos,
         mk,
