@@ -29,7 +29,7 @@ fn main() {
 
     let client_shim = ClientShim::new(
         endpoint.to_string(),
-        Some("cli_app_token".to_owned()),
+        Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDc5MjAxMDEsInN1YiI6ImMwZDk1OWU4LTk1MDktNDA2OS05MzNmLTExYmMzZTg1ZmFmYSIsImVtYWlsIjoiaHV5ZGllcDk2MjhAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6e30sInJvbGUiOiJhdXRoZW50aWNhdGVkIn0.6t-D_lVRdjsea2SF8HPNAWy9LxVUG0KqIS6onUd6d14".to_owned()),
         "cli_app".to_owned(),
     );
 
@@ -38,7 +38,12 @@ fn main() {
     if let Some(matches) = matches.subcommand_matches("create-wallet") {
         println!("Network: [{}], Creating wallet", network);
         let coin_type: &str = matches.value_of("coin-type").unwrap();
-        println!("{}", coin_type);
+
+        let coin_list = vec!["btc", "eth"];
+        if !coin_list.contains(&coin_type) {
+            panic!("Invalid coin type");
+        }
+
         let wallet = wallet::Wallet::new(&client_shim, &network, coin_type);
         wallet.save();
         println!("Network: [{}], Wallet saved to disk", &network);
@@ -49,8 +54,7 @@ fn main() {
         let mut wallet: wallet::Wallet = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
-            let address = wallet.get_new_bitcoin_address();
-            println!("Network: [{}], Address: [{}]", network, address);
+            wallet.get_crypto_address();
             wallet.save();
         } else if matches.is_present("get-balance") {
             let balance = wallet.get_balance();

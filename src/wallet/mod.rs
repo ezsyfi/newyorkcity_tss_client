@@ -12,13 +12,17 @@ use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
-use crate::btc::dto::{
-    AddressDerivation, BlockCypherAddress, BlockCypherRawTx, GetBalanceResponse,
+use crate::utilities::dto::{
+    MKPosDerivation, BlockCypherAddress, BlockCypherRawTx, GetBalanceResponse,
     GetListUnspentResponse, GetWalletBalanceResponse,
 };
 use crate::btc::utils::{
-    derive_new_key, get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key,
+    get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key,
 };
+use crate::eth::utils::{
+    to_eth_address
+};
+use crate::utilities::hd_wallet::derive_new_key;
 
 use super::btc;
 
@@ -41,7 +45,7 @@ pub struct Wallet {
     pub network: String,
     pub private_share: PrivateShare,
     pub last_derived_pos: u32,
-    pub addresses_derivation_map: HashMap<String, AddressDerivation>,
+    pub addresses_derivation_map: HashMap<String, MKPosDerivation>,
 }
 
 impl Wallet {
@@ -231,18 +235,27 @@ impl Wallet {
         res
     }
 
-    pub fn get_new_bitcoin_address(&mut self) -> bitcoin::Address {
+    pub fn get_crypto_address(&mut self) {
         let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
-        let address = to_bitcoin_address(&self.network, &mk);
+        let coin_type = &self.coin_type;
+        if coin_type == "btc" {
+            let address = to_bitcoin_address(&self.network, &mk);
+    
+            self.addresses_derivation_map
+                .insert(address.to_string(), MKPosDerivation { mk, pos });
+    
+            self.last_derived_pos = pos;
+            println!("BTC Network: [{}], Address: [{}]", &self.network, address);
 
-        self.addresses_derivation_map
-            .insert(address.to_string(), AddressDerivation { mk, pos });
+        } else if coin_type == "eth" {
+            let address = to_eth_address(&mk);
+            println!("ETH address: {:?}", address);
+        } else {
+            panic!("Can't get address for coin type")
+        }
 
-        self.last_derived_pos = pos;
-
-        address
     }
-
+    
     pub fn derived(&mut self) {
         for i in 0..self.last_derived_pos {
             let (pos, mk) = derive_new_key(&self.private_share, i);
@@ -254,7 +267,7 @@ impl Wallet {
             .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
 
             self.addresses_derivation_map
-                .insert(address.to_string(), AddressDerivation { mk, pos });
+                .insert(address.to_string(), MKPosDerivation { mk, pos });
         }
     }
 

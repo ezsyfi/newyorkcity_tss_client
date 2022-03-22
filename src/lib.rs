@@ -10,6 +10,7 @@ extern crate log;
 extern crate failure;
 
 pub mod btc;
+pub mod eth;
 pub mod ecdsa;
 pub mod escrow;
 pub mod wallet;
