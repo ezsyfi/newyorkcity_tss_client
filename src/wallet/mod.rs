@@ -12,15 +12,11 @@ use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
+use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
+use crate::eth::utils::to_eth_address;
 use crate::utilities::dto::{
-    MKPosDerivation, BlockCypherAddress, BlockCypherRawTx, GetBalanceResponse,
-    GetListUnspentResponse, GetWalletBalanceResponse,
-};
-use crate::btc::utils::{
-    get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key,
-};
-use crate::eth::utils::{
-    to_eth_address
+    BlockCypherAddress, BlockCypherRawTx, GetBalanceResponse, GetListUnspentResponse,
+    GetWalletBalanceResponse, MKPosDerivation,
 };
 use crate::utilities::hd_wallet::derive_new_key;
 
@@ -240,22 +236,20 @@ impl Wallet {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
             let address = to_bitcoin_address(&self.network, &mk);
-    
+
             self.addresses_derivation_map
                 .insert(address.to_string(), MKPosDerivation { mk, pos });
-    
+
             self.last_derived_pos = pos;
             println!("BTC Network: [{}], Address: [{}]", &self.network, address);
-
         } else if coin_type == "eth" {
             let address = to_eth_address(&mk);
             println!("ETH address: {:?}", address);
         } else {
             panic!("Can't get address for coin type")
         }
-
     }
-    
+
     pub fn derived(&mut self) {
         for i in 0..self.last_derived_pos {
             let (pos, mk) = derive_new_key(&self.private_share, i);

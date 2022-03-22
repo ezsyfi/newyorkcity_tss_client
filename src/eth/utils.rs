@@ -1,6 +1,6 @@
-use web3::{self, types::Address, signing::keccak256};
-use kms::ecdsa::two_party::MasterKey2;
 use curv::elliptic::curves::traits::ECPoint;
+use kms::ecdsa::two_party::MasterKey2;
+use web3::{self, signing::keccak256, types::Address};
 
 pub fn to_eth_address(mk: &MasterKey2) -> Address {
     let pub_k = mk.public.q.get_element().serialize_uncompressed();

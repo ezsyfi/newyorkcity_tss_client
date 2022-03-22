@@ -1,9 +1,14 @@
-use std::{os::raw::c_char, ffi::{CStr, CString}};
+use std::{
+    ffi::{CStr, CString},
+    os::raw::c_char,
+};
 
-use crate::{ecdsa::PrivateShare, utilities::{hd_wallet::derive_new_key, dto::MKPosAddressFFI}};
+use crate::{
+    ecdsa::PrivateShare,
+    utilities::{dto::MKPosAddressFFI, hd_wallet::derive_new_key},
+};
 
 use super::utils::to_eth_address;
-
 
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]

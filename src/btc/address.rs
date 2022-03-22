@@ -6,7 +6,7 @@ use crate::ecdsa::PrivateShare;
 use crate::utilities::dto::MKPosAddressFFI;
 use crate::utilities::hd_wallet::derive_new_key;
 
-use super::utils::{ BTC_TESTNET, to_bitcoin_address};
+use super::utils::{to_bitcoin_address, BTC_TESTNET};
 
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]

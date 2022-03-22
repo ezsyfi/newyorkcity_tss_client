@@ -47,10 +47,9 @@ pub fn get_test_private_share() -> PrivateShare {
 #[cfg(test)]
 mod tests {
     use crate::{
-        btc::utils::{
-            get_new_bitcoin_address, get_test_private_share, BTC_TESTNET,
-        },
-        ecdsa::PrivateShare, utilities::hd_wallet::derive_new_key,
+        btc::utils::{get_new_bitcoin_address, get_test_private_share, BTC_TESTNET},
+        ecdsa::PrivateShare,
+        utilities::hd_wallet::derive_new_key,
     };
     use bitcoin::Network;
     use curv::elliptic::curves::traits::ECPoint;

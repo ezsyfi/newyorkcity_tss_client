@@ -37,7 +37,6 @@ pub struct MKPosDerivation {
     pub mk: MasterKey2,
 }
 
-
 #[derive(Serialize, Deserialize)]
 pub struct MKPosAddressFFI {
     pub address: String,
