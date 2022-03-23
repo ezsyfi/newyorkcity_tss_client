@@ -16,7 +16,7 @@ use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_publ
 use crate::eth::utils::to_eth_address;
 use crate::utilities::dto::{
     BlockCypherAddress, BlockCypherRawTx, GetBalanceResponse, GetListUnspentResponse,
-    GetWalletBalanceResponse, MKPosDerivation,
+    GetWalletBalanceResponse, MKPosDto,
 };
 use crate::utilities::hd_wallet::derive_new_key;
 
@@ -41,7 +41,7 @@ pub struct Wallet {
     pub network: String,
     pub private_share: PrivateShare,
     pub last_derived_pos: u32,
-    pub addresses_derivation_map: HashMap<String, MKPosDerivation>,
+    pub addresses_derivation_map: HashMap<String, MKPosDto>,
 }
 
 impl Wallet {
@@ -238,7 +238,7 @@ impl Wallet {
             let address = to_bitcoin_address(&self.network, &mk);
 
             self.addresses_derivation_map
-                .insert(address.to_string(), MKPosDerivation { mk, pos });
+                .insert(address.to_string(), MKPosDto { mk, pos });
 
             self.last_derived_pos = pos;
             println!("BTC Network: [{}], Address: [{}]", &self.network, address);
@@ -261,7 +261,7 @@ impl Wallet {
             .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
 
             self.addresses_derivation_map
-                .insert(address.to_string(), MKPosDerivation { mk, pos });
+                .insert(address.to_string(), MKPosDto { mk, pos });
         }
     }
 

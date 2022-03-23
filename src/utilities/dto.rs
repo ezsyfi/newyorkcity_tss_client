@@ -32,13 +32,13 @@ pub struct GetWalletBalanceResponse {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct MKPosDerivation {
+pub struct MKPosDto {
     pub pos: u32,
     pub mk: MasterKey2,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct MKPosAddressFFI {
+pub struct MKPosAddressDto {
     pub address: String,
     pub pos: u32,
     pub mk: MasterKey2,

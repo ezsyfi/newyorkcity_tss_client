@@ -3,7 +3,7 @@ use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
 use crate::ecdsa::PrivateShare;
-use crate::utilities::dto::MKPosAddressFFI;
+use crate::utilities::dto::MKPosAddressDto;
 use crate::utilities::hd_wallet::derive_new_key;
 
 use super::utils::{to_bitcoin_address, BTC_TESTNET};
@@ -24,7 +24,7 @@ pub extern "C" fn get_btc_addrs(
     let (pos, mk) = derive_new_key(&private_share, c_last_derived_pos);
     let address = to_bitcoin_address(BTC_TESTNET, &mk);
 
-    let get_addr_resp = MKPosAddressFFI {
+    let get_addr_resp = MKPosAddressDto {
         address: address.to_string(),
         pos,
         mk,

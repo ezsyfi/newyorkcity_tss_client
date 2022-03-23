@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     ecdsa::PrivateShare,
-    utilities::{dto::MKPosAddressFFI, hd_wallet::derive_new_key},
+    utilities::{dto::MKPosAddressDto, hd_wallet::derive_new_key},
 };
 
 use super::utils::to_eth_address;
@@ -26,7 +26,7 @@ pub extern "C" fn get_eth_addrs(
     let (pos, mk) = derive_new_key(&private_share, c_last_derived_pos);
     let address = to_eth_address(&mk);
 
-    let get_addr_resp = MKPosAddressFFI {
+    let get_addr_resp = MKPosAddressDto {
         address: address.to_string(),
         pos,
         mk,
