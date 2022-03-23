@@ -27,9 +27,9 @@ fn main() {
     let hm = settings.try_into::<HashMap<String, String>>().unwrap();
     let endpoint = hm.get("endpoint").unwrap();
 
-    let client_shim = ClientShim::new(
+    let mut client_shim = ClientShim::new(
         endpoint.to_string(),
-        Some("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NDc5MjAxMDEsInN1YiI6ImMwZDk1OWU4LTk1MDktNDA2OS05MzNmLTExYmMzZTg1ZmFmYSIsImVtYWlsIjoiaHV5ZGllcDk2MjhAZ21haWwuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6e30sInJvbGUiOiJhdXRoZW50aWNhdGVkIn0.6t-D_lVRdjsea2SF8HPNAWy9LxVUG0KqIS6onUd6d14".to_owned()),
+        Some("cli_token".to_owned()),
         "cli_app".to_owned(),
     );
 
@@ -43,7 +43,8 @@ fn main() {
         if !coin_list.contains(&coin_type) {
             panic!("Invalid coin type");
         }
-
+        let token: &str = matches.value_of("token").unwrap();
+        client_shim.auth_token = Some(token.to_owned());
         let wallet = wallet::Wallet::new(&client_shim, &network, coin_type);
         wallet.save();
         println!("Network: [{}], Wallet saved to disk", &network);
@@ -119,6 +120,8 @@ fn main() {
             if let Some(matches) = matches.subcommand_matches("send") {
                 let to: &str = matches.value_of("to").unwrap();
                 let amount_btc: &str = matches.value_of("amount").unwrap();
+                let token: &str = matches.value_of("token").unwrap();
+                client_shim.auth_token = Some(token.to_owned());
                 let tx_state = wallet.send(
                     to.to_string(),
                     amount_btc.to_string().parse::<f32>().unwrap(),
