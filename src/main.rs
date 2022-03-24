@@ -6,7 +6,7 @@ use clap::App;
 
 use client::escrow;
 use client::wallet;
-use client::ClientShim;
+use client::utilities::requests::ClientShim;
 use floating_duration::TimeFormat;
 use std::collections::HashMap;
 use std::time::Instant;

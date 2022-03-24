@@ -19,6 +19,7 @@ use crate::utilities::dto::{
     GetWalletBalanceResponse, MKPosDto,
 };
 use crate::utilities::hd_wallet::derive_new_key;
+use crate::utilities::requests::ClientShim;
 
 use super::btc;
 
@@ -26,7 +27,6 @@ use super::ecdsa;
 use super::ecdsa::types::PrivateShare;
 use super::escrow;
 use super::utilities::requests;
-use super::ClientShim;
 use std::collections::HashMap;
 
 // TODO: move that to a config file and double check electrum server addresses

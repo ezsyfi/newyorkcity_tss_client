@@ -14,34 +14,14 @@ pub mod ecdsa;
 pub mod escrow;
 pub mod eth;
 pub mod wallet;
+pub mod utilities;
 
 // pub mod eddsa;
-pub mod schnorr;
+// pub mod schnorr;
 
 mod tests;
-mod utilities;
 
 type Result<T> = std::result::Result<T, failure::Error>;
-
-#[derive(Debug)]
-pub struct ClientShim {
-    pub client: reqwest::blocking::Client,
-    pub auth_token: Option<String>,
-    pub user_id: String,
-    pub endpoint: String,
-}
-
-impl ClientShim {
-    pub fn new(endpoint: String, auth_token: Option<String>, user_id: String) -> ClientShim {
-        let client = reqwest::blocking::Client::new();
-        ClientShim {
-            client,
-            auth_token,
-            user_id,
-            endpoint,
-        }
-    }
-}
 
 pub use curv::{arithmetic::traits::Converter, BigInt};
 // pub use multi_party_eddsa::protocols::aggsig::*;

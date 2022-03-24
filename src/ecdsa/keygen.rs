@@ -10,8 +10,9 @@ use kms::ecdsa::two_party::*;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 use zk_paillier::zkproofs::SALT_STRING;
 
+use crate::utilities::requests::ClientShim;
+
 use super::super::utilities::requests;
-use super::super::ClientShim;
 use super::types::PrivateShare;
 
 // iOS bindings

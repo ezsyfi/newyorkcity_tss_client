@@ -6,7 +6,7 @@ use crate::utilities::dto::{
     BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse, MKPosAddressDto, MKPosDto,
 };
 use crate::utilities::hd_wallet::derive_new_key;
-use crate::ClientShim;
+use crate::utilities::requests::ClientShim;
 use bitcoin::util::bip143::SigHashCache;
 use curv::arithmetic::traits::Converter; // Need for signing
 use curv::elliptic::curves::traits::ECPoint;

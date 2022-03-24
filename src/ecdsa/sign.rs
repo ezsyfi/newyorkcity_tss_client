@@ -4,9 +4,10 @@ use kms::ecdsa::two_party::MasterKey2;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::party_one;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::party_two;
 
+use crate::utilities::requests::ClientShim;
+
 use super::super::utilities::error_to_c_string;
 use super::super::utilities::requests;
-use super::super::ClientShim;
 use super::super::Result;
 
 // iOS bindings
