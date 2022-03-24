@@ -3,8 +3,7 @@ use crate::btc::utils::{get_bitcoin_network, get_new_bitcoin_address, to_bitcoin
 use crate::ecdsa::{sign, PrivateShare};
 
 use crate::utilities::dto::{
-    BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse, MKPosAddressDto,
-    MKPosDto,
+    BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse, MKPosAddressDto, MKPosDto,
 };
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::ClientShim;
