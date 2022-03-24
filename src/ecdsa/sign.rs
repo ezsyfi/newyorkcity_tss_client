@@ -27,7 +27,7 @@ pub fn sign(
     mk: &MasterKey2,
     x_pos: BigInt,
     y_pos: BigInt,
-    id: &String,
+    id: &str,
 ) -> Result<party_one::SignatureRecid> {
     let (eph_key_gen_first_message_party_two, eph_comm_witness, eph_ec_key_pair_party2) =
         MasterKey2::sign_first_message();
@@ -67,7 +67,7 @@ fn get_signature(
     party_two_sign_message: party2::SignMessage,
     x_pos_child_key: BigInt,
     y_pos_child_key: BigInt,
-    id: &String,
+    id: &str,
 ) -> Result<party_one::SignatureRecid> {
     let request: SignSecondMsgRequest = SignSecondMsgRequest {
         message,

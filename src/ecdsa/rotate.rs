@@ -57,6 +57,7 @@ pub fn rotate_master_key(wallet: wallet::Wallet, client_shim: &ClientShim) -> wa
     let addresses_derivation_map = HashMap::new();
     let mut wallet_after_rotate = wallet::Wallet {
         id: wallet.id.clone(),
+        coin_type: wallet.coin_type.clone(),
         network: wallet.network.clone(),
         private_share,
         last_derived_pos: wallet.last_derived_pos,

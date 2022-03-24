@@ -27,17 +27,25 @@ fn main() {
     let hm = settings.try_into::<HashMap<String, String>>().unwrap();
     let endpoint = hm.get("endpoint").unwrap();
 
-    let client_shim = ClientShim::new(
+    let mut client_shim = ClientShim::new(
         endpoint.to_string(),
-        Some("cli_app_token".to_owned()),
+        Some("cli_token".to_owned()),
         "cli_app".to_owned(),
     );
 
     let network = "testnet".to_string();
 
-    if let Some(_matches) = matches.subcommand_matches("create-wallet") {
+    if let Some(matches) = matches.subcommand_matches("create-wallet") {
         println!("Network: [{}], Creating wallet", network);
-        let wallet = wallet::Wallet::new(&client_shim, &network);
+        let coin_type: &str = matches.value_of("coin-type").unwrap();
+
+        let coin_list = vec!["btc", "eth"];
+        if !coin_list.contains(&coin_type) {
+            panic!("Invalid coin type");
+        }
+        let token: &str = matches.value_of("token").unwrap();
+        client_shim.auth_token = Some(token.to_owned());
+        let wallet = wallet::Wallet::new(&client_shim, &network, coin_type);
         wallet.save();
         println!("Network: [{}], Wallet saved to disk", &network);
 
@@ -47,8 +55,7 @@ fn main() {
         let mut wallet: wallet::Wallet = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
-            let address = wallet.get_new_bitcoin_address();
-            println!("Network: [{}], Address: [{}]", network, address);
+            wallet.get_crypto_address();
             wallet.save();
         } else if matches.is_present("get-balance") {
             let balance = wallet.get_balance();
@@ -113,6 +120,8 @@ fn main() {
             if let Some(matches) = matches.subcommand_matches("send") {
                 let to: &str = matches.value_of("to").unwrap();
                 let amount_btc: &str = matches.value_of("amount").unwrap();
+                let token: &str = matches.value_of("token").unwrap();
+                client_shim.auth_token = Some(token.to_owned());
                 let tx_state = wallet.send(
                     to.to_string(),
                     amount_btc.to_string().parse::<f32>().unwrap(),
