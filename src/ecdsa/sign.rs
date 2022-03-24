@@ -100,37 +100,41 @@ pub extern "C" fn sign_message(
     let raw_endpoint = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("decoding raw endpoint failed: {}", e)),
+        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw endpoint failed: {}", e)),
     };
 
     let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
     let auth_token = match raw_auth_token.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("decoding raw auth_token failed: {}", e)),
+        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw auth_token failed: {}", e)),
     };
 
     let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
     let user_id = match user_id_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw user id"),
+        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw user id")),
     };
 
     let raw_message_hex = unsafe { CStr::from_ptr(c_message_le_hex) };
     let message_hex = match raw_message_hex.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("decoding raw message_hex failed: {}", e)),
+        Err(e) => {
+            return error_to_c_string(anyhow!("E100: decoding raw message_hex failed: {}", e))
+        }
     };
 
     let raw_master_key_json = unsafe { CStr::from_ptr(c_master_key_json) };
     let master_key_json = match raw_master_key_json.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("decoding raw master_key_json failed: {}", e)),
+        Err(e) => {
+            return error_to_c_string(anyhow!("E100: decoding raw master_key_json failed: {}", e))
+        }
     };
 
     let raw_id = unsafe { CStr::from_ptr(c_id) };
     let id = match raw_id.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("decoding raw id failed: {}", e)),
+        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw id failed: {}", e)),
     };
 
     let x: BigInt = BigInt::from(c_x_pos);
@@ -152,14 +156,22 @@ pub extern "C" fn sign_message(
     let sig = match sign(&client_shim, message, &mk_child, x, y, &id.to_string()) {
         Ok(s) => s,
         Err(e) => {
-            return error_to_c_string(anyhow!("signing to endpoint {} failed: {}", endpoint, e))
+            return error_to_c_string(anyhow!(
+                "E101: signing to endpoint {} failed: {}",
+                endpoint,
+                e
+            ))
         }
     };
 
     let signature_json = match serde_json::to_string(&sig) {
         Ok(share) => share,
         Err(e) => {
-            return error_to_c_string(anyhow!("signing to endpoint {} failed: {}", endpoint, e))
+            return error_to_c_string(anyhow!(
+                "E101: signing to endpoint {} failed: {}",
+                endpoint,
+                e
+            ))
         }
     };
 

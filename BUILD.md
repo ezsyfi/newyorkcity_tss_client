@@ -1,9 +1,18 @@
 # Step by step build
 
-## Building gotham-client
+## Build Rust
 
 ```bash
-cd gotham-client
+# building the library only
+cargo build --lib --release
+
+# building the library AND the cli binary
+cargo build --release
+```
+## Build nyc-client FFI
+
+```bash
+cd newyorkcity_tss_client
 ```
 
 ```bash
@@ -14,14 +23,6 @@ For iOS
 
 ```bash
 make ios
-```
-
-Once compilation completes, we will get
-
-```bash
-    Finished release [optimized] target(s) in 2m 53s
-[INFO  cargo_lipo::lipo] Creating universal library for gotham-client
-[DONE] target/universal/release/libexample.a
 ```
 
 Then, we use `cbindgen` to generate a C header file
@@ -43,7 +44,7 @@ As an example,
 ```bash
 # This assumes that we have a flutter-rus-plugin git repo in the directory path at the same directory level as our project root
 
-cp gotham-client/target/universal/release/libclient_lib.a ../flutter-rust-plugin/ios/
+cp newyorkcity_tss_client/target/universal/release/libclient_lib.a ../flutter-rust-plugin/ios/
 
-cp gotham-client/libclient.h ../flutter-rust-plugin/ios/Classes/
+cp newyorkcity_tss_client/libclient.h ../flutter-rust-plugin/ios/Classes/
 ```

@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bitcoin::{self};
 use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::ECPoint;
@@ -15,8 +16,7 @@ use kms::chain_code::two_party::party2::ChainCode2;
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
 use crate::eth::utils::to_eth_address;
 use crate::utilities::dto::{
-    BlockCypherAddress, BlockCypherRawTx, GetBalanceResponse, GetListUnspentResponse,
-    GetWalletBalanceResponse, MKPosDto,
+    BalanceAggregator, BlockCypherAddress, BlockCypherRawTx, MKPosDto, UtxoAggregator,
 };
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
@@ -47,7 +47,10 @@ pub struct Wallet {
 impl Wallet {
     pub fn new(client_shim: &ClientShim, net: &str, c_type: &str) -> Wallet {
         let id = Uuid::new_v4().to_string();
-        let private_share = ecdsa::get_master_key(client_shim);
+        let private_share = match ecdsa::get_master_key(client_shim) {
+            Ok(p) => p,
+            Err(e) => panic!("{}", e),
+        };
         let last_derived_pos = 0;
         let addresses_derivation_map = HashMap::new();
 
@@ -196,7 +199,7 @@ impl Wallet {
         to_address: String,
         amount_btc: f32,
         client_shim: &ClientShim,
-    ) -> String {
+    ) -> Option<String> {
         let raw_tx_opt = btc::raw_tx::create_raw_tx(
             to_address,
             amount_btc,
@@ -207,16 +210,16 @@ impl Wallet {
         );
 
         let raw_tx = match raw_tx_opt {
-            Some(tx) => tx,
-            None => {
+            Ok(tx) => tx,
+            Err(_) => {
                 println!("Unable to create raw transaction");
-                return "".to_string();
+                return Some("".to_owned());
             }
         };
 
         let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
         let raw_tx = BlockCypherRawTx {
-            tx: raw_tx.raw_tx_hex,
+            tx: raw_tx?.raw_tx_hex,
         };
         let res = reqwest::blocking::Client::new()
             .post(raw_tx_url)
@@ -228,14 +231,14 @@ impl Wallet {
 
         print!("{}", res);
 
-        res
+        Some(res)
     }
 
-    pub fn get_crypto_address(&mut self) {
+    pub fn get_crypto_address(&mut self) -> Result<()> {
         let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
-            let address = to_bitcoin_address(&self.network, &mk);
+            let address = to_bitcoin_address(&self.network, &mk)?;
 
             self.addresses_derivation_map
                 .insert(address.to_string(), MKPosDto { mk, pos });
@@ -248,39 +251,38 @@ impl Wallet {
         } else {
             panic!("Can't get address for coin type")
         }
+        Ok(())
     }
 
-    pub fn derived(&mut self) {
+    pub fn derived(&mut self) -> Result<()> {
         for i in 0..self.last_derived_pos {
             let (pos, mk) = derive_new_key(&self.private_share, i);
 
             let address = bitcoin::Address::p2wpkh(
                 &to_bitcoin_public_key(mk.public.q.get_element()),
-                get_bitcoin_network(&self.network),
+                get_bitcoin_network(&self.network)?,
             )
             .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
 
             self.addresses_derivation_map
                 .insert(address.to_string(), MKPosDto { mk, pos });
         }
+        Ok(())
     }
 
-    pub fn get_balance(&mut self) -> GetWalletBalanceResponse {
-        let mut aggregated_balance = GetWalletBalanceResponse {
-            confirmed: 0,
-            unconfirmed: 0,
-        };
-
+    pub fn get_balance(&mut self) -> (i64, u64) {
+        let mut unconfirmed = 0;
+        let mut confirmed = 0;
         for b in self.get_all_addresses_balance() {
-            aggregated_balance.unconfirmed += b.unconfirmed;
-            aggregated_balance.confirmed += b.confirmed;
+            unconfirmed += b.unconfirmed;
+            confirmed += b.confirmed;
         }
 
-        aggregated_balance
+        (unconfirmed, confirmed)
     }
 
-    pub fn list_unspent(&self) -> Vec<GetListUnspentResponse> {
-        let response: Vec<GetListUnspentResponse> = self
+    pub fn list_unspent(&self) -> Vec<UtxoAggregator> {
+        let response: Vec<UtxoAggregator> = self
             .get_all_addresses()
             .into_iter()
             .map(|a| self.list_unspent_for_addresss(a.to_string()))
@@ -291,7 +293,7 @@ impl Wallet {
     }
 
     /* PRIVATE */
-    fn list_unspent_for_addresss(&self, address: String) -> Vec<GetListUnspentResponse> {
+    fn list_unspent_for_addresss(&self, address: String) -> Vec<UtxoAggregator> {
         let unspent_tx_url =
             BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
         let res = reqwest::blocking::get(unspent_tx_url)
@@ -304,7 +306,7 @@ impl Wallet {
         if let Some(tx_refs) = address_balance_with_tx_refs.txrefs {
             tx_refs
                 .iter()
-                .map(|u| GetListUnspentResponse {
+                .map(|u| UtxoAggregator {
                     value: u.value,
                     height: u.block_height,
                     tx_hash: u.tx_hash.clone(),
@@ -317,8 +319,8 @@ impl Wallet {
         }
     }
 
-    fn get_all_addresses_balance(&self) -> Vec<GetBalanceResponse> {
-        let response: Vec<GetBalanceResponse> = self
+    fn get_all_addresses_balance(&self) -> Vec<BalanceAggregator> {
+        let response: Vec<BalanceAggregator> = self
             .get_all_addresses()
             .into_iter()
             .map(|a| Self::get_address_balance(&a))
@@ -327,14 +329,14 @@ impl Wallet {
         response
     }
 
-    fn get_address_balance(address: &bitcoin::Address) -> GetBalanceResponse {
+    fn get_address_balance(address: &bitcoin::Address) -> BalanceAggregator {
         let balance_url =
             BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
         let res = reqwest::blocking::get(balance_url).unwrap().text().unwrap();
         let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str()).unwrap();
         println!("{:#?}", address_balance);
 
-        GetBalanceResponse {
+        BalanceAggregator {
             confirmed: address_balance.balance,
             unconfirmed: address_balance.unconfirmed_balance,
             address: address.to_string(),
@@ -352,7 +354,10 @@ impl Wallet {
                 .private_share
                 .master_key
                 .get_child(vec![BigInt::from(0), BigInt::from(n)]);
-            let bitcoin_address = to_bitcoin_address(&self.network, &mk);
+            let bitcoin_address = match to_bitcoin_address(&self.network, &mk) {
+                Ok(address) => address,
+                Err(_) => panic!("Error while creating btc address"),
+            };
 
             response.push(bitcoin_address);
         }

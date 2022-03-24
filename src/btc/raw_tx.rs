@@ -3,10 +3,11 @@ use crate::btc::utils::{get_bitcoin_network, get_new_bitcoin_address, to_bitcoin
 use crate::ecdsa::{sign, PrivateShare};
 
 use crate::utilities::dto::{
-    BlockCypherAddress, GetBalanceResponse, GetListUnspentResponse, MKPosAddressDto, MKPosDto,
+    BalanceAggregator, BlockCypherAddress, MKPosAddressDto, MKPosDto, UtxoAggregator,
 };
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
+use anyhow::{anyhow, Result};
 use bitcoin::util::bip143::SigHashCache;
 use curv::arithmetic::traits::Converter; // Need for signing
 use curv::elliptic::curves::traits::ECPoint;
@@ -44,12 +45,11 @@ pub fn create_raw_tx(
     last_derived_pos: u32,
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
-) -> Option<BtcRawTxFFIResp> {
+) -> Result<Option<BtcRawTxFFIResp>> {
     let selected = select_tx_in(amount_btc, last_derived_pos, private_share);
 
     if selected.is_empty() {
-        println!("Not enough fund");
-        return None;
+        return Err(anyhow!("Not enough fund"));
     }
 
     /* Specify "vin" array aka Transaction Inputs */
@@ -72,7 +72,14 @@ pub fn create_raw_tx(
     let amount_satoshi = (amount_btc * 100_000_000 as f32) as u64;
 
     let (change_pos, change_mk) = derive_new_key(private_share, last_derived_pos);
-    let change_address = get_new_bitcoin_address(private_share, last_derived_pos);
+
+    let change_address = match get_new_bitcoin_address(private_share, last_derived_pos) {
+        Ok(s) => s,
+        Err(e) => {
+            return Err(anyhow!("Error while get new btc address: {}", e));
+        }
+    };
+
     let change_address_payload = MKPosAddressDto {
         address: change_address.to_string(),
         pos: change_pos,
@@ -121,8 +128,11 @@ pub fn create_raw_tx(
         let mut sig_hasher = SigHashCache::new(&mut transaction);
         let sig_hash = sig_hasher.signature_hash(
             i,
-            &bitcoin::Address::p2pkh(&to_bitcoin_public_key(pk), get_bitcoin_network(BTC_TESTNET))
-                .script_pubkey(),
+            &bitcoin::Address::p2pkh(
+                &to_bitcoin_public_key(pk),
+                get_bitcoin_network(BTC_TESTNET)?,
+            )
+            .script_pubkey(),
             (selected[i].value as u32).into(),
             SigHashType::All,
         );
@@ -152,10 +162,10 @@ pub fn create_raw_tx(
         signed_transaction.input[i].witness = vec![sig_vec, pk_vec];
     }
     // (hex::encode(serialize(&signed_transaction)), Some(change_addr_resp))
-    Some(BtcRawTxFFIResp {
+    Ok(Some(BtcRawTxFFIResp {
         raw_tx_hex: hex::encode(serialize(&signed_transaction)),
         change_address_payload,
-    })
+    }))
 }
 
 // TODO: handle fees
@@ -164,9 +174,9 @@ fn select_tx_in(
     amount_btc: f32,
     last_derived_pos: u32,
     private_share: &PrivateShare,
-) -> Vec<GetListUnspentResponse> {
+) -> Vec<UtxoAggregator> {
     // greedy selection
-    let list_unspent: Vec<GetListUnspentResponse> =
+    let list_unspent: Vec<UtxoAggregator> =
         get_all_addresses_balance(last_derived_pos, private_share)
             .into_iter()
             // .filter(|b| b.confirmed > 0)
@@ -179,7 +189,7 @@ fn select_tx_in(
     // println!("list_unspent {:#?}", list_unspent);
 
     let mut remaining: i64 = (amount_btc * 100_000_000.0) as i64;
-    let mut selected: Vec<GetListUnspentResponse> = Vec::new();
+    let mut selected: Vec<UtxoAggregator> = Vec::new();
     for unspent in list_unspent {
         selected.push(unspent.clone());
         remaining -= unspent.value as i64;
@@ -193,8 +203,8 @@ fn select_tx_in(
 fn get_all_addresses_balance(
     last_derived_pos: u32,
     private_share: &PrivateShare,
-) -> Vec<GetBalanceResponse> {
-    let response: Vec<GetBalanceResponse> = get_all_addresses(last_derived_pos, private_share)
+) -> Vec<BalanceAggregator> {
+    let response: Vec<BalanceAggregator> = get_all_addresses(last_derived_pos, private_share)
         .into_iter()
         .map(|a| get_address_balance(&a))
         .collect();
@@ -213,7 +223,13 @@ fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec
         let mk = private_share
             .master_key
             .get_child(vec![BigInt::from(0), BigInt::from(n)]);
-        let bitcoin_address = to_bitcoin_address(BTC_TESTNET, &mk);
+
+        let bitcoin_address = match to_bitcoin_address(BTC_TESTNET, &mk) {
+            Ok(s) => s,
+            Err(e) => {
+                panic!("Error while creating btc address: {}", e);
+            }
+        };
 
         response.push(bitcoin_address);
     }
@@ -221,19 +237,19 @@ fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec
     response
 }
 
-fn get_address_balance(address: &bitcoin::Address) -> GetBalanceResponse {
+fn get_address_balance(address: &bitcoin::Address) -> BalanceAggregator {
     let balance_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
     let res = reqwest::blocking::get(balance_url).unwrap().text().unwrap();
     let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str()).unwrap();
 
-    GetBalanceResponse {
+    BalanceAggregator {
         confirmed: address_balance.balance,
         unconfirmed: address_balance.unconfirmed_balance,
         address: address.to_string(),
     }
 }
 
-fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
+fn list_unspent_for_addresss(address: String) -> Vec<UtxoAggregator> {
     let unspent_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
     let res = reqwest::blocking::get(unspent_tx_url)
         .unwrap()
@@ -245,7 +261,7 @@ fn list_unspent_for_addresss(address: String) -> Vec<GetListUnspentResponse> {
     if let Some(tx_refs) = address_balance_with_tx_refs.txrefs {
         tx_refs
             .iter()
-            .map(|u| GetListUnspentResponse {
+            .map(|u| UtxoAggregator {
                 value: u.value,
                 height: u.block_height,
                 tx_hash: u.tx_hash.clone(),
@@ -273,38 +289,38 @@ pub extern "C" fn get_raw_btc_tx(
     let raw_endpoint_json = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw endpoint"),
+        Err(_) => panic!("E100: Error while decoding raw endpoint"),
     };
 
     let raw_auth_json = unsafe { CStr::from_ptr(c_auth_token) };
     let auth = match raw_auth_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw auth token"),
+        Err(_) => panic!("E100: Error while decoding raw auth token"),
     };
 
     let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
     let user_id = match user_id_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw user id"),
+        Err(_) => panic!("E100: Error while decoding raw user id"),
     };
 
     let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
     let to_address = match raw_to_address.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw address"),
+        Err(_) => panic!("E100: Error while decoding raw address"),
     };
 
     let raw_private_share_json = unsafe { CStr::from_ptr(c_private_share_json) };
     let private_share_json = match raw_private_share_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw private share"),
+        Err(_) => panic!("E100: Error while decoding raw private share"),
     };
     let private_share: PrivateShare = serde_json::from_str(private_share_json).unwrap();
 
     let raw_addresses_derivation_map_json = unsafe { CStr::from_ptr(c_addresses_derivation_map) };
     let addresses_derivation_map_json = match raw_addresses_derivation_map_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw addresses derivation map"),
+        Err(_) => panic!("E100: Error while decoding raw addresses derivation map"),
     };
     let addresses_derivation_map: HashMap<String, MKPosDto> =
         serde_json::from_str(addresses_derivation_map_json).unwrap();
@@ -315,14 +331,17 @@ pub extern "C" fn get_raw_btc_tx(
         user_id.to_owned(),
     );
 
-    let raw_tx_opt = create_raw_tx(
+    let raw_tx_opt = match create_raw_tx(
         to_address.to_owned(),
         c_amount_btc,
         &client_shim,
         c_last_derived_pos,
         &private_share,
         &addresses_derivation_map,
-    );
+    ) {
+        Ok(s) => s,
+        Err(e) => panic!("E101: Error while creating raw tx: {}", e),
+    };
 
     let raw_tx = match raw_tx_opt {
         Some(tx) => tx,
@@ -331,7 +350,7 @@ pub extern "C" fn get_raw_btc_tx(
 
     let raw_tx_json = match serde_json::to_string(&raw_tx) {
         Ok(tx_resp) => tx_resp,
-        Err(_) => panic!("Error while performing get btc addrs"),
+        Err(_) => panic!("E102: parse raw_tx response to JSON failed"),
     };
 
     CString::new(raw_tx_json).unwrap().into_raw()

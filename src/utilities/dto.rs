@@ -10,25 +10,19 @@ pub struct SignSecondMsgRequest {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct GetBalanceResponse {
+pub struct BalanceAggregator {
     pub address: String,
     pub confirmed: u64,
     pub unconfirmed: i64,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct GetListUnspentResponse {
+pub struct UtxoAggregator {
     pub height: isize,
     pub tx_hash: String,
     pub tx_pos: usize,
     pub value: usize,
     pub address: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetWalletBalanceResponse {
-    pub confirmed: u64,
-    pub unconfirmed: i64,
 }
 
 #[derive(Serialize, Deserialize)]
