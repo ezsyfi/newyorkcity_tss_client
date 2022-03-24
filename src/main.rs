@@ -5,8 +5,8 @@ extern crate clap;
 use clap::App;
 
 use client::escrow;
-use client::wallet;
 use client::utilities::requests::ClientShim;
+use client::wallet;
 use floating_duration::TimeFormat;
 use std::collections::HashMap;
 use std::time::Instant;
