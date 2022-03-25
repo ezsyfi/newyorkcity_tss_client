@@ -11,7 +11,8 @@ A TSS plugin for mobile wallet
 [How to build](./BUILD.md)
 
 ## Error code
-
+```bash
 E100: Decode C string pointer to Rust &str error
 E101: TSS communication process error
 E102: From struct to JSON parsing error
+```
