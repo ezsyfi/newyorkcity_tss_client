@@ -5,8 +5,8 @@ extern crate clap;
 use clap::App;
 
 use client::escrow;
+use client::utilities::requests::ClientShim;
 use client::wallet;
-use client::ClientShim;
 use floating_duration::TimeFormat;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -55,13 +55,13 @@ fn main() {
         let mut wallet: wallet::Wallet = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
-            wallet.get_crypto_address();
+            wallet.get_crypto_address().unwrap();
             wallet.save();
         } else if matches.is_present("get-balance") {
-            let balance = wallet.get_balance();
+            let (unconfirmed, confirmed) = wallet.get_balance();
             println!(
                 "Network: [{}], Balance: [balance: {}, pending: {}]",
-                network, balance.confirmed, balance.unconfirmed
+                network, confirmed, unconfirmed
             );
         } else if matches.is_present("list-unspent") {
             let unspent = wallet.list_unspent();
@@ -122,11 +122,13 @@ fn main() {
                 let amount_btc: &str = matches.value_of("amount").unwrap();
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
-                let tx_state = wallet.send(
-                    to.to_string(),
-                    amount_btc.to_string().parse::<f32>().unwrap(),
-                    &client_shim,
-                );
+                let tx_state = wallet
+                    .send(
+                        to.to_string(),
+                        amount_btc.to_string().parse::<f32>().unwrap(),
+                        &client_shim,
+                    )
+                    .unwrap();
                 wallet.save();
                 println!(
                     "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",

@@ -1,7 +1,26 @@
-use super::super::ClientShim;
 use floating_duration::TimeFormat;
 use serde;
 use std::time::Instant;
+
+#[derive(Debug)]
+pub struct ClientShim {
+    pub client: reqwest::blocking::Client,
+    pub auth_token: Option<String>,
+    pub user_id: String,
+    pub endpoint: String,
+}
+
+impl ClientShim {
+    pub fn new(endpoint: String, auth_token: Option<String>, user_id: String) -> ClientShim {
+        let client = reqwest::blocking::Client::new();
+        ClientShim {
+            client,
+            auth_token,
+            user_id,
+            endpoint,
+        }
+    }
+}
 
 pub fn post<V>(client_shim: &ClientShim, path: &str) -> Option<V>
 where

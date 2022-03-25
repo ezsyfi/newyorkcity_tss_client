@@ -1,5 +1,6 @@
 use std::fs;
 
+use anyhow::{anyhow, Result};
 use bitcoin::{self, Network};
 use curv::elliptic::curves::secp256_k1::PK;
 use curv::elliptic::curves::traits::ECPoint;
@@ -13,18 +14,17 @@ pub const BTC_TESTNET: &str = "testnet";
 pub fn get_new_bitcoin_address(
     private_share: &PrivateShare,
     last_derived_pos: u32,
-) -> bitcoin::Address {
+) -> Result<bitcoin::Address> {
     let (_pos, mk) = derive_new_key(private_share, last_derived_pos);
     to_bitcoin_address(BTC_TESTNET, &mk)
 }
 
-pub fn to_bitcoin_address(network: &str, mk: &MasterKey2) -> bitcoin::Address {
+pub fn to_bitcoin_address(network: &str, mk: &MasterKey2) -> Result<bitcoin::Address> {
     let pk = mk.public.q.get_element();
-    bitcoin::Address::p2wpkh(
-        &to_bitcoin_public_key(pk),
-        network.to_owned().parse::<bitcoin::Network>().unwrap(),
-    )
-    .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address")
+    match bitcoin::Address::p2wpkh(&to_bitcoin_public_key(pk), get_bitcoin_network(network)?) {
+        Ok(address) => Ok(address),
+        Err(e) => Err(anyhow!("Error while creating bitcoin address: {}", e)),
+    }
 }
 
 pub fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
@@ -34,8 +34,9 @@ pub fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
     }
 }
 
-pub fn get_bitcoin_network(nw: &str) -> Network {
-    nw.to_owned().parse::<Network>().unwrap()
+pub fn get_bitcoin_network(nw: &str) -> Result<Network> {
+    let btc_nw = nw.to_owned().parse::<Network>()?;
+    Ok(btc_nw)
 }
 
 pub fn get_test_private_share() -> PrivateShare {
@@ -51,13 +52,15 @@ mod tests {
         ecdsa::PrivateShare,
         utilities::hd_wallet::derive_new_key,
     };
+    use anyhow::Result;
     use bitcoin::Network;
     use curv::elliptic::curves::traits::ECPoint;
 
     #[test]
-    fn test_get_bitcoin_network() {
-        let network = super::get_bitcoin_network(BTC_TESTNET);
+    fn test_get_bitcoin_network() -> Result<()> {
+        let network = super::get_bitcoin_network(BTC_TESTNET)?;
         assert_eq!(network, Network::Testnet);
+        Ok(())
     }
 
     #[test]
@@ -70,10 +73,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_new_bitcoin_address() {
+    fn test_get_new_bitcoin_address() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let addrs = get_new_bitcoin_address(&private_share, 0);
+        let addrs = get_new_bitcoin_address(&private_share, 0)?;
         let exp = "tb1qxyjt450heqv4ql8k7rp2qfmd4vrmncaquzw37r".to_string();
         assert_eq!(addrs.to_string(), exp);
+        Ok(())
     }
 }

@@ -1,13 +1,13 @@
+use anyhow::{anyhow, Result};
 use curv::BigInt;
 use kms::ecdsa::two_party::party2;
 use kms::ecdsa::two_party::MasterKey2;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::party_one;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::party_two;
 
-use super::super::utilities::error_to_c_string;
 use super::super::utilities::requests;
-use super::super::ClientShim;
-use super::super::Result;
+use crate::utilities::err_handling::error_to_c_string;
+use crate::utilities::requests::ClientShim;
 
 // iOS bindings
 use std::ffi::{CStr, CString};
@@ -36,7 +36,7 @@ pub fn sign(
     let sign_party_one_first_message: party_one::EphKeyGenFirstMsg =
         match requests::postb(client_shim, &format!("/ecdsa/sign/{}/first", id), &request) {
             Some(s) => s,
-            None => return Err(failure::err_msg("party1 sign first message request failed")),
+            None => return Err(anyhow!("party1 sign first message request failed")),
         };
 
     let party_two_sign_message = mk.sign_second_message(
@@ -55,7 +55,7 @@ pub fn sign(
         id,
     ) {
         Ok(s) => s,
-        Err(e) => return Err(format_err!("ecdsa::get_signature failed failed: {}", e)),
+        Err(e) => return Err(anyhow!("ecdsa::get_signature failed failed: {}", e)),
     };
 
     Ok(signature)
@@ -79,11 +79,7 @@ fn get_signature(
     let signature: party_one::SignatureRecid =
         match requests::postb(client_shim, &format!("/ecdsa/sign/{}/second", id), &request) {
             Some(s) => s,
-            None => {
-                return Err(failure::err_msg(
-                    "party1 sign second message request failed",
-                ))
-            }
+            None => return Err(anyhow!("party1 sign second message request failed",)),
         };
 
     Ok(signature)
@@ -104,39 +100,41 @@ pub extern "C" fn sign_message(
     let raw_endpoint = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(format_err!("decoding raw endpoint failed: {}", e)),
+        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw endpoint failed: {}", e)),
     };
 
     let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
     let auth_token = match raw_auth_token.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(format_err!("decoding raw auth_token failed: {}", e)),
+        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw auth_token failed: {}", e)),
     };
 
     let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
     let user_id = match user_id_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("Error while decoding raw user id"),
+        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw user id")),
     };
 
     let raw_message_hex = unsafe { CStr::from_ptr(c_message_le_hex) };
     let message_hex = match raw_message_hex.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(format_err!("decoding raw message_hex failed: {}", e)),
+        Err(e) => {
+            return error_to_c_string(anyhow!("E100: decoding raw message_hex failed: {}", e))
+        }
     };
 
     let raw_master_key_json = unsafe { CStr::from_ptr(c_master_key_json) };
     let master_key_json = match raw_master_key_json.to_str() {
         Ok(s) => s,
         Err(e) => {
-            return error_to_c_string(format_err!("decoding raw master_key_json failed: {}", e))
+            return error_to_c_string(anyhow!("E100: decoding raw master_key_json failed: {}", e))
         }
     };
 
     let raw_id = unsafe { CStr::from_ptr(c_id) };
     let id = match raw_id.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(format_err!("decoding raw id failed: {}", e)),
+        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw id failed: {}", e)),
     };
 
     let x: BigInt = BigInt::from(c_x_pos);
@@ -158,8 +156,8 @@ pub extern "C" fn sign_message(
     let sig = match sign(&client_shim, message, &mk_child, x, y, &id.to_string()) {
         Ok(s) => s,
         Err(e) => {
-            return error_to_c_string(format_err!(
-                "signing to endpoint {} failed: {}",
+            return error_to_c_string(anyhow!(
+                "E101: signing to endpoint {} failed: {}",
                 endpoint,
                 e
             ))
@@ -169,8 +167,8 @@ pub extern "C" fn sign_message(
     let signature_json = match serde_json::to_string(&sig) {
         Ok(share) => share,
         Err(e) => {
-            return error_to_c_string(format_err!(
-                "signing to endpoint {} failed: {}",
+            return error_to_c_string(anyhow!(
+                "E101: signing to endpoint {} failed: {}",
                 endpoint,
                 e
             ))
