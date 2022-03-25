@@ -58,10 +58,10 @@ fn main() {
             wallet.get_crypto_address().unwrap();
             wallet.save();
         } else if matches.is_present("get-balance") {
-            let balance = wallet.get_balance();
+            let (unconfirmed, confirmed) = wallet.get_balance();
             println!(
                 "Network: [{}], Balance: [balance: {}, pending: {}]",
-                network, balance.confirmed, balance.unconfirmed
+                network, confirmed, unconfirmed
             );
         } else if matches.is_present("list-unspent") {
             let unspent = wallet.list_unspent();
