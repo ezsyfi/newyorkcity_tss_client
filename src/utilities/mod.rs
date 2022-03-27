@@ -12,8 +12,5 @@ pub extern "C" fn cstring_free(cstring: *mut c_char) {
     if cstring.is_null() {
         return;
     }
-    unsafe {
-        CString::from_raw(cstring)
-    };
-    
+    unsafe { CString::from_raw(cstring) };
 }
