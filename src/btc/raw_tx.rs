@@ -46,7 +46,7 @@ pub fn create_raw_tx(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<Option<BtcRawTxFFIResp>> {
-    let selected = select_tx_in(amount_btc, last_derived_pos, private_share);
+    let selected = select_tx_in(amount_btc, last_derived_pos, private_share)?;
 
     if selected.is_empty() {
         return Err(anyhow!("Not enough fund"));
@@ -97,7 +97,7 @@ pub fn create_raw_tx(
     );
     println!("{} - back", total_selected - amount_satoshi);
 
-    let to_btc_adress = bitcoin::Address::from_str(&to_address).unwrap();
+    let to_btc_adress = bitcoin::Address::from_str(&to_address)?;
     let txs_out = vec![
         TxOut {
             value: amount_satoshi,
@@ -120,7 +120,14 @@ pub fn create_raw_tx(
 
     /* Signing transaction */
     for i in 0..transaction.input.len() {
-        let address_derivation = addresses_derivation_map.get(&selected[i].address).unwrap();
+        let address_derivation = match addresses_derivation_map.get(&selected[i].address) {
+            Some(s) => s,
+            None => {
+                return Err(anyhow!(
+                    "Error while get address from addresses_derivation_map"
+                ));
+            }
+        };
 
         let mk = &address_derivation.mk;
         let pk = mk.public.q.get_element();
@@ -144,17 +151,13 @@ pub fn create_raw_tx(
             BigInt::from(0),
             BigInt::from(address_derivation.pos),
             &private_share.id,
-        )
-        .unwrap();
+        )?;
 
         let mut v = BigInt::to_bytes(&signature.r);
         v.extend(BigInt::to_bytes(&signature.s));
 
         // Serialize the (R,S) value of ECDSA Signature
-        let mut sig_vec = Signature::from_compact(&v[..])
-            .unwrap()
-            .serialize_der()
-            .to_vec();
+        let mut sig_vec = Signature::from_compact(&v[..])?.serialize_der().to_vec();
         sig_vec.push(1);
 
         let pk_vec = pk.serialize().to_vec();
@@ -174,13 +177,13 @@ fn select_tx_in(
     amount_btc: f32,
     last_derived_pos: u32,
     private_share: &PrivateShare,
-) -> Vec<UtxoAggregator> {
+) -> Result<Vec<UtxoAggregator>> {
     // greedy selection
     let list_unspent: Vec<UtxoAggregator> =
-        get_all_addresses_balance(last_derived_pos, private_share)
+        get_all_addresses_balance(last_derived_pos, private_share)?
             .into_iter()
             // .filter(|b| b.confirmed > 0)
-            .map(|a| list_unspent_for_addresss(a.address))
+            .filter_map(|a| list_unspent_for_addresss(a.address).ok())
             .flatten()
             .sorted_by(|a, b| a.value.partial_cmp(&b.value).unwrap())
             .into_iter()
@@ -197,17 +200,18 @@ fn select_tx_in(
             break;
         }
     }
-    selected
+    Ok(selected)
 }
 
 fn get_all_addresses_balance(
     last_derived_pos: u32,
     private_share: &PrivateShare,
-) -> Vec<BalanceAggregator> {
-    let response: Vec<BalanceAggregator> = get_all_addresses(last_derived_pos, private_share)
-        .into_iter()
-        .map(|a| get_address_balance(&a))
-        .collect();
+) -> Result<Vec<BalanceAggregator>> {
+    let response: Result<Vec<BalanceAggregator>> =
+        get_all_addresses(last_derived_pos, private_share)
+            .into_iter()
+            .map(|a| get_address_balance(&a))
+            .collect();
 
     // println!("get_all_addresses_balance {:#?}", response);
     response
@@ -237,29 +241,25 @@ fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec
     response
 }
 
-fn get_address_balance(address: &bitcoin::Address) -> BalanceAggregator {
+fn get_address_balance(address: &bitcoin::Address) -> Result<BalanceAggregator> {
     let balance_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
-    let res = reqwest::blocking::get(balance_url).unwrap().text().unwrap();
-    let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str()).unwrap();
+    let res = reqwest::blocking::get(balance_url)?.text()?;
+    let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str())?;
 
-    BalanceAggregator {
+    Ok(BalanceAggregator {
         confirmed: address_balance.balance,
         unconfirmed: address_balance.unconfirmed_balance,
         address: address.to_string(),
-    }
+    })
 }
 
-fn list_unspent_for_addresss(address: String) -> Vec<UtxoAggregator> {
+fn list_unspent_for_addresss(address: String) -> Result<Vec<UtxoAggregator>> {
     let unspent_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
-    let res = reqwest::blocking::get(unspent_tx_url)
-        .unwrap()
-        .text()
-        .unwrap();
-
+    let res = reqwest::blocking::get(unspent_tx_url)?.text()?;
     let address_balance_with_tx_refs: BlockCypherAddress =
         serde_json::from_str(res.as_str()).unwrap();
     if let Some(tx_refs) = address_balance_with_tx_refs.txrefs {
-        tx_refs
+        Ok(tx_refs
             .iter()
             .map(|u| UtxoAggregator {
                 value: u.value,
@@ -268,9 +268,9 @@ fn list_unspent_for_addresss(address: String) -> Vec<UtxoAggregator> {
                 tx_pos: u.tx_output_n,
                 address: address.clone(),
             })
-            .collect()
+            .collect())
     } else {
-        Vec::new()
+        Ok(Vec::new())
     }
 }
 
@@ -340,7 +340,7 @@ pub extern "C" fn get_raw_btc_tx(
         &addresses_derivation_map,
     ) {
         Ok(s) => s,
-        Err(e) => panic!("E101: Error while creating raw tx: {}", e),
+        Err(e) => panic!("E103: Error while creating raw tx: {}", e),
     };
 
     let raw_tx = match raw_tx_opt {
@@ -358,6 +358,8 @@ pub extern "C" fn get_raw_btc_tx(
 
 #[cfg(test)]
 mod tests {
+    use anyhow::Result;
+
     use crate::{btc::utils::get_test_private_share, ecdsa::PrivateShare};
 
     #[test]
@@ -368,9 +370,9 @@ mod tests {
     }
 
     #[test]
-    fn test_get_all_addresses_balance() {
+    fn test_get_all_addresses_balance() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let address_balance_list = super::get_all_addresses_balance(0, &private_share);
+        let address_balance_list = super::get_all_addresses_balance(0, &private_share)?;
         assert!(!address_balance_list.is_empty());
 
         let address_balance = address_balance_list.get(0).unwrap();
@@ -380,12 +382,14 @@ mod tests {
             address_balance.address,
             "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5"
         );
+        Ok(())
     }
 
     #[test]
-    fn test_select_tx_in() {
+    fn test_select_tx_in() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let unspent_list = super::select_tx_in(0.0, 0, &private_share);
+        let unspent_list = super::select_tx_in(0.0, 0, &private_share)?;
         assert!(unspent_list.is_empty());
+        Ok(())
     }
 }

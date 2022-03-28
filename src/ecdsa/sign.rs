@@ -34,7 +34,7 @@ pub fn sign(
 
     let request: party_two::EphKeyGenFirstMsg = eph_key_gen_first_message_party_two;
     let sign_party_one_first_message: party_one::EphKeyGenFirstMsg =
-        match requests::postb(client_shim, &format!("/ecdsa/sign/{}/first", id), &request) {
+        match requests::postb(client_shim, &format!("/ecdsa/sign/{}/first", id), &request)? {
             Some(s) => s,
             None => return Err(anyhow!("party1 sign first message request failed")),
         };
@@ -77,7 +77,7 @@ fn get_signature(
     };
 
     let signature: party_one::SignatureRecid =
-        match requests::postb(client_shim, &format!("/ecdsa/sign/{}/second", id), &request) {
+        match requests::postb(client_shim, &format!("/ecdsa/sign/{}/second", id), &request)? {
             Some(s) => s,
             None => return Err(anyhow!("party1 sign second message request failed",)),
         };
@@ -153,11 +153,11 @@ pub extern "C" fn sign_message(
 
     let message: BigInt = serde_json::from_str(message_hex).unwrap();
 
-    let sig = match sign(&client_shim, message, &mk_child, x, y, &id.to_string()) {
+    let sig = match sign(&client_shim, message, &mk_child, x, y, id) {
         Ok(s) => s,
         Err(e) => {
             return error_to_c_string(anyhow!(
-                "E101: signing to endpoint {} failed: {}",
+                "E103: signing to endpoint {} failed: {}",
                 endpoint,
                 e
             ))
@@ -168,7 +168,7 @@ pub extern "C" fn sign_message(
         Ok(share) => share,
         Err(e) => {
             return error_to_c_string(anyhow!(
-                "E101: signing to endpoint {} failed: {}",
+                "E103: signing to endpoint {} failed: {}",
                 endpoint,
                 e
             ))

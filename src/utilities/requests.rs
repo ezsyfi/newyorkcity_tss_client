@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use floating_duration::TimeFormat;
 use serde;
 use std::time::Instant;
@@ -22,14 +23,14 @@ impl ClientShim {
     }
 }
 
-pub fn post<V>(client_shim: &ClientShim, path: &str) -> Option<V>
+pub fn post<V>(client_shim: &ClientShim, path: &str) -> Result<Option<V>>
 where
     V: serde::de::DeserializeOwned,
 {
     _postb(client_shim, path, "{}")
 }
 
-pub fn postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Option<V>
+pub fn postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Result<Option<V>>
 where
     T: serde::ser::Serialize,
     V: serde::de::DeserializeOwned,
@@ -37,7 +38,7 @@ where
     _postb(client_shim, path, body)
 }
 
-fn _postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Option<V>
+fn _postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Result<Option<V>>
 where
     T: serde::ser::Serialize,
     V: serde::de::DeserializeOwned,
@@ -58,9 +59,9 @@ where
     info!("(req {}, took: {})", path, TimeFormat(start.elapsed()));
 
     let value = match res {
-        Ok(v) => v.text().unwrap(),
-        Err(_) => return None,
+        Ok(v) => v.text()?,
+        Err(e) => return Err(anyhow!("HTTP POST with auth token failed: {}", e)),
     };
 
-    Some(serde_json::from_str(value.as_str()).unwrap())
+    Ok(Some(serde_json::from_str(value.as_str())?))
 }
