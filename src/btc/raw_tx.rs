@@ -5,6 +5,7 @@ use crate::ecdsa::{sign, PrivateShare};
 use crate::utilities::dto::{
     BalanceAggregator, BlockCypherAddress, MKPosAddressDto, MKPosDto, UtxoAggregator,
 };
+use crate::utilities::err_handling::error_to_c_string;
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
 use anyhow::{anyhow, Result};
@@ -208,7 +209,7 @@ fn get_all_addresses_balance(
     private_share: &PrivateShare,
 ) -> Result<Vec<BalanceAggregator>> {
     let response: Result<Vec<BalanceAggregator>> =
-        get_all_addresses(last_derived_pos, private_share)
+        get_all_addresses(last_derived_pos, private_share)?
             .into_iter()
             .map(|a| get_address_balance(&a))
             .collect();
@@ -217,7 +218,10 @@ fn get_all_addresses_balance(
     response
 }
 
-fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec<bitcoin::Address> {
+fn get_all_addresses(
+    last_derived_pos: u32,
+    private_share: &PrivateShare,
+) -> Result<Vec<bitcoin::Address>> {
     let init = 0;
     let last_pos = last_derived_pos;
 
@@ -228,17 +232,12 @@ fn get_all_addresses(last_derived_pos: u32, private_share: &PrivateShare) -> Vec
             .master_key
             .get_child(vec![BigInt::from(0), BigInt::from(n)]);
 
-        let bitcoin_address = match to_bitcoin_address(BTC_TESTNET, &mk) {
-            Ok(s) => s,
-            Err(e) => {
-                panic!("Error while creating btc address: {}", e);
-            }
-        };
+        let bitcoin_address = to_bitcoin_address(BTC_TESTNET, &mk)?;
 
         response.push(bitcoin_address);
     }
 
-    response
+    Ok(response)
 }
 
 fn get_address_balance(address: &bitcoin::Address) -> Result<BalanceAggregator> {
@@ -256,8 +255,7 @@ fn get_address_balance(address: &bitcoin::Address) -> Result<BalanceAggregator> 
 fn list_unspent_for_addresss(address: String) -> Result<Vec<UtxoAggregator>> {
     let unspent_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
     let res = reqwest::blocking::get(unspent_tx_url)?.text()?;
-    let address_balance_with_tx_refs: BlockCypherAddress =
-        serde_json::from_str(res.as_str()).unwrap();
+    let address_balance_with_tx_refs: BlockCypherAddress = serde_json::from_str(res.as_str())?;
     if let Some(tx_refs) = address_balance_with_tx_refs.txrefs {
         Ok(tx_refs
             .iter()
@@ -289,41 +287,57 @@ pub extern "C" fn get_raw_btc_tx(
     let raw_endpoint_json = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("E100: Error while decoding raw endpoint"),
+        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw endpoint")),
     };
 
     let raw_auth_json = unsafe { CStr::from_ptr(c_auth_token) };
     let auth = match raw_auth_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("E100: Error while decoding raw auth token"),
+        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw auth token")),
     };
 
     let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
     let user_id = match user_id_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("E100: Error while decoding raw user id"),
+        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw user id")),
     };
 
     let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
     let to_address = match raw_to_address.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("E100: Error while decoding raw address"),
+        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw address")),
     };
 
     let raw_private_share_json = unsafe { CStr::from_ptr(c_private_share_json) };
     let private_share_json = match raw_private_share_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("E100: Error while decoding raw private share"),
+        Err(_) => {
+            return error_to_c_string(anyhow!("E100: Error while decoding raw private share"))
+        }
     };
-    let private_share: PrivateShare = serde_json::from_str(private_share_json).unwrap();
+    let private_share: PrivateShare = match serde_json::from_str(private_share_json) {
+        Ok(s) => s,
+        Err(_) => return error_to_c_string(anyhow!("E104: parse JSON to private share failed")),
+    };
 
     let raw_addresses_derivation_map_json = unsafe { CStr::from_ptr(c_addresses_derivation_map) };
     let addresses_derivation_map_json = match raw_addresses_derivation_map_json.to_str() {
         Ok(s) => s,
-        Err(_) => panic!("E100: Error while decoding raw addresses derivation map"),
+        Err(_) => {
+            return error_to_c_string(anyhow!(
+                "E100: Error while decoding raw addresses derivation map"
+            ))
+        }
     };
     let addresses_derivation_map: HashMap<String, MKPosDto> =
-        serde_json::from_str(addresses_derivation_map_json).unwrap();
+        match serde_json::from_str(addresses_derivation_map_json) {
+            Ok(s) => s,
+            Err(_) => {
+                return error_to_c_string(anyhow!(
+                    "E104: parse JSON to addresses_derivation_map failed"
+                ))
+            }
+        };
 
     let client_shim = ClientShim::new(
         endpoint.to_owned(),
@@ -340,7 +354,7 @@ pub extern "C" fn get_raw_btc_tx(
         &addresses_derivation_map,
     ) {
         Ok(s) => s,
-        Err(e) => panic!("E103: Error while creating raw tx: {}", e),
+        Err(e) => return error_to_c_string(anyhow!("E103: Error while creating raw tx: {}", e)),
     };
 
     let raw_tx = match raw_tx_opt {
@@ -350,10 +364,13 @@ pub extern "C" fn get_raw_btc_tx(
 
     let raw_tx_json = match serde_json::to_string(&raw_tx) {
         Ok(tx_resp) => tx_resp,
-        Err(_) => panic!("E102: parse raw_tx response to JSON failed"),
+        Err(_) => return error_to_c_string(anyhow!("E102: parse raw_tx response to JSON failed")),
     };
 
-    CString::new(raw_tx_json).unwrap().into_raw()
+    match CString::new(raw_tx_json) {
+        Ok(s) => s.into_raw(),
+        Err(_) => error_to_c_string(anyhow!("E101: Error while encoding raw tx response")),
+    }
 }
 
 #[cfg(test)]
@@ -363,10 +380,11 @@ mod tests {
     use crate::{btc::utils::get_test_private_share, ecdsa::PrivateShare};
 
     #[test]
-    fn test_get_all_addresses() {
+    fn test_get_all_addresses() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let address_list = super::get_all_addresses(0, &private_share);
+        let address_list = super::get_all_addresses(0, &private_share)?;
         assert!(!address_list.is_empty());
+        Ok(())
     }
 
     #[test]

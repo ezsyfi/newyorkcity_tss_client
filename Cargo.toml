@@ -33,6 +33,7 @@ curv = { package = "curv-kzen", version = "0.7" }
 web3 = "0.18.0"
 anyhow = "1.0.56"
 openssl = { version = '0.10', features = ["vendored"] }
+tokio = { version = "1", features = ["full"] }
 
 [dependencies.zk-paillier]
 git = "https://github.com/KZen-networks/zk-paillier"
