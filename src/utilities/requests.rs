@@ -1,6 +1,7 @@
+use anyhow::{anyhow, Result};
 use floating_duration::TimeFormat;
 use serde;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 #[derive(Debug)]
 pub struct ClientShim {
@@ -12,7 +13,12 @@ pub struct ClientShim {
 
 impl ClientShim {
     pub fn new(endpoint: String, auth_token: Option<String>, user_id: String) -> ClientShim {
-        let client = reqwest::blocking::Client::new();
+        let client = reqwest::blocking::Client::builder()
+            // .connect_timeout(Some(Duration::new(1,0)))
+            .timeout(Duration::new(u32::MAX.into(), 0))
+            .build()
+            .unwrap();
+
         ClientShim {
             client,
             auth_token,
@@ -22,14 +28,14 @@ impl ClientShim {
     }
 }
 
-pub fn post<V>(client_shim: &ClientShim, path: &str) -> Option<V>
+pub fn post<V>(client_shim: &ClientShim, path: &str) -> Result<Option<V>>
 where
     V: serde::de::DeserializeOwned,
 {
     _postb(client_shim, path, "{}")
 }
 
-pub fn postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Option<V>
+pub fn postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Result<Option<V>>
 where
     T: serde::ser::Serialize,
     V: serde::de::DeserializeOwned,
@@ -37,7 +43,7 @@ where
     _postb(client_shim, path, body)
 }
 
-fn _postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Option<V>
+fn _postb<T, V>(client_shim: &ClientShim, path: &str, body: T) -> Result<Option<V>>
 where
     T: serde::ser::Serialize,
     V: serde::de::DeserializeOwned,
@@ -55,12 +61,15 @@ where
 
     let res = b.json(&body).send();
 
+    let body_json = serde_json::to_string(&body)?;
+    println!("{:#?}", body_json);
+
     info!("(req {}, took: {})", path, TimeFormat(start.elapsed()));
 
     let value = match res {
-        Ok(v) => v.text().unwrap(),
-        Err(_) => return None,
+        Ok(v) => v.text()?,
+        Err(e) => return Err(anyhow!("HTTP POST with auth token failed: {}", e)),
     };
 
-    Some(serde_json::from_str(value.as_str()).unwrap())
+    Ok(Some(serde_json::from_str(value.as_str())?))
 }

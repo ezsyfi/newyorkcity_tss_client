@@ -27,7 +27,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
     let start = Instant::now();
 
     let (id, kg_party_one_first_message): (String, party_one::KeyGenFirstMsg) =
-        match requests::post(client_shim, &format!("{}/first", KG_PATH_PRE)) {
+        match requests::post(client_shim, &format!("{}/first", KG_PATH_PRE))? {
             Some(s) => s,
             None => return Err(anyhow!("keygen first message request failed")),
         };
@@ -36,16 +36,11 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
 
     let body = &kg_party_two_first_message.d_log_proof;
 
-    let kg_party_one_second_message: party1::KeyGenParty1Message2 = match requests::postb(
-        client_shim,
-        &format!("{}/{}/second", KG_PATH_PRE, id),
-        body,
-    )
-    .unwrap()
-    {
-        Some(s) => s,
-        None => return Err(anyhow!("keygen second message request failed")),
-    };
+    let kg_party_one_second_message: party1::KeyGenParty1Message2 =
+        match requests::postb(client_shim, &format!("{}/{}/second", KG_PATH_PRE, id), body)? {
+            Some(s) => s,
+            None => return Err(anyhow!("keygen second message request failed")),
+        };
 
     let (_, party_two_paillier) = match MasterKey2::key_gen_second_message(
         &kg_party_one_first_message,
@@ -59,7 +54,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
     let cc_party_one_first_message: Party1FirstMessage = match requests::post(
         client_shim,
         &format!("{}/{}/chaincode/first", KG_PATH_PRE, id),
-    ) {
+    )? {
         Some(s) => s,
         None => return Err(anyhow!("chaincode first message request failed")),
     };
@@ -73,7 +68,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
         client_shim,
         &format!("{}/{}/chaincode/second", KG_PATH_PRE, id),
         body,
-    ) {
+    )? {
         Some(s) => s,
         None => return Err(anyhow!("chaincode second message request failed")),
     };
@@ -139,7 +134,7 @@ pub extern "C" fn get_client_master_key(
 
     let private_share: PrivateShare = match get_master_key(&client_shim) {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("E101: get master key failed: {}", e)),
+        Err(e) => return error_to_c_string(anyhow!("E103: get master key failed: {}", e)),
     };
 
     let private_share_json = match serde_json::to_string(&private_share) {
@@ -147,5 +142,8 @@ pub extern "C" fn get_client_master_key(
         Err(_) => return error_to_c_string(anyhow!("E102: parse private share to JSON failed")),
     };
 
-    CString::new(private_share_json).unwrap().into_raw()
+    match CString::new(private_share_json) {
+        Ok(s) => s.into_raw(),
+        Err(_) => error_to_c_string(anyhow!("E101: Error while encoding private share")),
+    }
 }

@@ -16,7 +16,9 @@ const ROT_PATH_PRE: &str = "ecdsa/rotate";
 pub fn rotate_master_key(wallet: wallet::Wallet, client_shim: &ClientShim) -> wallet::Wallet {
     let id = &wallet.private_share.id.clone();
     let coin_flip_party1_first_message: coin_flip_optimal_rounds::Party1FirstMessage<GE> =
-        requests::post(client_shim, &format!("{}/{}/first", ROT_PATH_PRE, id)).unwrap();
+        requests::post(client_shim, &format!("{}/{}/first", ROT_PATH_PRE, id))
+            .unwrap()
+            .unwrap();
 
     let coin_flip_party2_first_message =
         Rotation2::key_rotate_first_message(&coin_flip_party1_first_message);
@@ -31,6 +33,7 @@ pub fn rotate_master_key(wallet: wallet::Wallet, client_shim: &ClientShim) -> wa
         &format!("{}/{}/second", ROT_PATH_PRE, id.clone()),
         body,
     )
+    .unwrap()
     .unwrap();
 
     let random2 = Rotation2::key_rotate_second_message(

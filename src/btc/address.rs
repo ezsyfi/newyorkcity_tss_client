@@ -18,29 +18,40 @@ pub extern "C" fn get_btc_addrs(
     let raw_private_share_json = unsafe { CStr::from_ptr(c_private_share_json) };
     let private_share_json = match raw_private_share_json.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding private share")),
+        Err(_) => return error_to_c_string(anyhow!("E102: parse private share to JSON failed")),
     };
-    let private_share: PrivateShare = serde_json::from_str(private_share_json).unwrap();
+    let private_share: PrivateShare = match serde_json::from_str(private_share_json) {
+        Ok(s) => s,
+        Err(e) => {
+            return error_to_c_string(anyhow!(
+                "E100: Error while deserializing private share: {}",
+                e
+            ))
+        }
+    };
 
     let (pos, mk) = derive_new_key(&private_share, c_last_derived_pos);
 
     let address = match to_bitcoin_address(BTC_TESTNET, &mk) {
         Ok(s) => s,
         Err(e) => {
-            return error_to_c_string(anyhow!("E101: Error while creating btc address: {}", e))
+            return error_to_c_string(anyhow!("E103: Error while creating btc address: {}", e))
         }
     };
 
-    let get_addr_resp = MKPosAddressDto {
+    let mk_pos_address = MKPosAddressDto {
         address: address.to_string(),
         pos,
         mk,
     };
 
-    let get_addr_resp_json = match serde_json::to_string(&get_addr_resp) {
+    let mk_pos_address_json = match serde_json::to_string(&mk_pos_address) {
         Ok(addrs_resp) => addrs_resp,
         Err(_) => return error_to_c_string(anyhow!("E102: parse MKPosAddressDTO to JSON failed")),
     };
 
-    CString::new(get_addr_resp_json).unwrap().into_raw()
+    match CString::new(mk_pos_address_json) {
+        Ok(s) => s.into_raw(),
+        Err(_) => error_to_c_string(anyhow!("E101: Error while encoding mk,pos,address dto")),
+    }
 }
