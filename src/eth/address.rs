@@ -5,7 +5,11 @@ use std::{
 
 use crate::{
     ecdsa::PrivateShare,
-    utilities::{dto::MKPosAddressDto, hd_wallet::derive_new_key},
+    utilities::{
+        dto::MKPosAddressDto,
+        err_handling::{error_to_c_string, ErrorFFIKind},
+        hd_wallet::derive_new_key,
+    },
 };
 
 use super::utils::to_eth_address;
@@ -26,16 +30,27 @@ pub extern "C" fn get_eth_addrs(
     let (pos, mk) = derive_new_key(&private_share, c_last_derived_pos);
     let address = to_eth_address(&mk);
 
-    let get_addr_resp = MKPosAddressDto {
+    let mk_pos_address = MKPosAddressDto {
         address: address.to_string(),
         pos,
         mk,
     };
 
-    let get_addr_resp_json = match serde_json::to_string(&get_addr_resp) {
+    let mk_pos_address_json = match serde_json::to_string(&mk_pos_address) {
         Ok(addrs_resp) => addrs_resp,
-        Err(_) => panic!("Error while performing get eth addrs"),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E102 {
+                msg: "MKPosAddressDTO".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
-    CString::new(get_addr_resp_json).unwrap().into_raw()
+    match CString::new(mk_pos_address_json) {
+        Ok(s) => s.into_raw(),
+        Err(e) => error_to_c_string(ErrorFFIKind::E101 {
+            msg: "mk,pos,address dto".to_owned(),
+            e: e.to_string(),
+        }),
+    }
 }

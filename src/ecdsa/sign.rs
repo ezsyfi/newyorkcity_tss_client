@@ -7,6 +7,7 @@ use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::party_two;
 
 use super::super::utilities::requests;
 use crate::utilities::err_handling::error_to_c_string;
+use crate::utilities::err_handling::ErrorFFIKind;
 use crate::utilities::requests::ClientShim;
 
 // iOS bindings
@@ -100,26 +101,44 @@ pub extern "C" fn sign_message(
     let raw_endpoint = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw endpoint failed: {}", e)),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "endpoint".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
     let auth_token = match raw_auth_token.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw auth_token failed: {}", e)),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "auth_token".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
     let user_id = match user_id_json.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw user id")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "user_id".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let raw_message_hex = unsafe { CStr::from_ptr(c_message_le_hex) };
     let message_hex = match raw_message_hex.to_str() {
         Ok(s) => s,
         Err(e) => {
-            return error_to_c_string(anyhow!("E100: decoding raw message_hex failed: {}", e))
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "message_hex".to_owned(),
+                e: e.to_string(),
+            })
         }
     };
 
@@ -127,14 +146,22 @@ pub extern "C" fn sign_message(
     let master_key_json = match raw_master_key_json.to_str() {
         Ok(s) => s,
         Err(e) => {
-            return error_to_c_string(anyhow!("E100: decoding raw master_key_json failed: {}", e))
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "master_key_json".to_owned(),
+                e: e.to_string(),
+            })
         }
     };
 
     let raw_id = unsafe { CStr::from_ptr(c_id) };
     let id = match raw_id.to_str() {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("E100: decoding raw id failed: {}", e)),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "id".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let x: BigInt = BigInt::from(c_x_pos);
@@ -156,22 +183,20 @@ pub extern "C" fn sign_message(
     let sig = match sign(&client_shim, message, &mk_child, x, y, id) {
         Ok(s) => s,
         Err(e) => {
-            return error_to_c_string(anyhow!(
-                "E103: signing to endpoint {} failed: {}",
-                endpoint,
-                e
-            ))
+            return error_to_c_string(ErrorFFIKind::E103 {
+                msg: "sig".to_owned(),
+                e: e.to_string(),
+            })
         }
     };
 
     let signature_json = match serde_json::to_string(&sig) {
         Ok(share) => share,
         Err(e) => {
-            return error_to_c_string(anyhow!(
-                "E103: signing to endpoint {} failed: {}",
-                endpoint,
-                e
-            ))
+            return error_to_c_string(ErrorFFIKind::E103 {
+                msg: "signature_json".to_owned(),
+                e: e.to_string(),
+            })
         }
     };
 

@@ -5,7 +5,7 @@ use crate::ecdsa::{sign, PrivateShare};
 use crate::utilities::dto::{
     BalanceAggregator, BlockCypherAddress, MKPosAddressDto, MKPosDto, UtxoAggregator,
 };
-use crate::utilities::err_handling::error_to_c_string;
+use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
 use anyhow::{anyhow, Result};
@@ -287,61 +287,91 @@ pub extern "C" fn get_raw_btc_tx(
     let raw_endpoint_json = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint_json.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw endpoint")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "endpoint".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
-    let raw_auth_json = unsafe { CStr::from_ptr(c_auth_token) };
-    let auth = match raw_auth_json.to_str() {
+    let raw_auth_token_json = unsafe { CStr::from_ptr(c_auth_token) };
+    let auth_token = match raw_auth_token_json.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw auth token")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "auth_token".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
     let user_id = match user_id_json.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw user id")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "user_id".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
     let to_address = match raw_to_address.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw address")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "to_address".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let raw_private_share_json = unsafe { CStr::from_ptr(c_private_share_json) };
     let private_share_json = match raw_private_share_json.to_str() {
         Ok(s) => s,
-        Err(_) => {
-            return error_to_c_string(anyhow!("E100: Error while decoding raw private share"))
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "private_share".to_owned(),
+                e: e.to_string(),
+            })
         }
     };
     let private_share: PrivateShare = match serde_json::from_str(private_share_json) {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E104: parse JSON to private share failed")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E104 {
+                msg: "private_share".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let raw_addresses_derivation_map_json = unsafe { CStr::from_ptr(c_addresses_derivation_map) };
     let addresses_derivation_map_json = match raw_addresses_derivation_map_json.to_str() {
         Ok(s) => s,
-        Err(_) => {
-            return error_to_c_string(anyhow!(
-                "E100: Error while decoding raw addresses derivation map"
-            ))
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "addresses_derivation_map".to_owned(),
+                e: e.to_string(),
+            })
         }
     };
     let addresses_derivation_map: HashMap<String, MKPosDto> =
         match serde_json::from_str(addresses_derivation_map_json) {
             Ok(s) => s,
-            Err(_) => {
-                return error_to_c_string(anyhow!(
-                    "E104: parse JSON to addresses_derivation_map failed"
-                ))
+            Err(e) => {
+                return error_to_c_string(ErrorFFIKind::E104 {
+                    msg: "addresses_derivation_map".to_owned(),
+                    e: e.to_string(),
+                })
             }
         };
 
     let client_shim = ClientShim::new(
         endpoint.to_owned(),
-        Some(auth.to_owned()),
+        Some(auth_token.to_owned()),
         user_id.to_owned(),
     );
 
@@ -354,7 +384,12 @@ pub extern "C" fn get_raw_btc_tx(
         &addresses_derivation_map,
     ) {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("E103: Error while creating raw tx: {}", e)),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E103 {
+                msg: "raw_tx".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let raw_tx = match raw_tx_opt {
@@ -364,12 +399,20 @@ pub extern "C" fn get_raw_btc_tx(
 
     let raw_tx_json = match serde_json::to_string(&raw_tx) {
         Ok(tx_resp) => tx_resp,
-        Err(_) => return error_to_c_string(anyhow!("E102: parse raw_tx response to JSON failed")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E102 {
+                msg: "raw_tx".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     match CString::new(raw_tx_json) {
         Ok(s) => s.into_raw(),
-        Err(_) => error_to_c_string(anyhow!("E101: Error while encoding raw tx response")),
+        Err(e) => error_to_c_string(ErrorFFIKind::E101 {
+            msg: "raw_tx".to_owned(),
+            e: e.to_string(),
+        }),
     }
 }
 

@@ -31,9 +31,10 @@ config = "0.11.0"
 floating-duration = "0.1.2"
 curv = { package = "curv-kzen", version = "0.7" }
 web3 = "0.18.0"
-anyhow = "1.0.56"
+anyhow = "1.0"
 openssl = { version = '0.10', features = ["vendored"] }
 tokio = { version = "1", features = ["full"] }
+thiserror = "1.0"
 
 [dependencies.zk-paillier]
 git = "https://github.com/KZen-networks/zk-paillier"
