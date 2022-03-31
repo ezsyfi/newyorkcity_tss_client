@@ -2,9 +2,11 @@
 
 #[macro_use]
 extern crate clap;
+use anyhow::Result;
 use clap::App;
 
 use client::escrow;
+use client::eth::utils::check_address_info;
 use client::utilities::requests::ClientShim;
 use client::wallet;
 use floating_duration::TimeFormat;
@@ -34,7 +36,6 @@ fn main() {
     );
 
     let network = "testnet".to_string();
-
     if let Some(matches) = matches.subcommand_matches("create-wallet") {
         println!("Network: [{}], Creating wallet", network);
         let coin_type: &str = matches.value_of("coin-type").unwrap();
@@ -58,11 +59,17 @@ fn main() {
             wallet.get_crypto_address().unwrap();
             wallet.save();
         } else if matches.is_present("get-balance") {
-            let (unconfirmed, confirmed) = wallet.get_balance();
-            println!(
-                "Network: [{}], Balance: [balance: {}, pending: {}]",
-                network, confirmed, unconfirmed
-            );
+            if wallet.coin_type == "btc" {
+                let (unconfirmed, confirmed) = wallet.get_balance();
+                println!(
+                    "Network: [{}], Balance: [balance: {}, pending: {}]",
+                    network, confirmed, unconfirmed
+                );
+            } else if wallet.coin_type == "eth" {
+                let addr = wallet.get_crypto_address().unwrap();
+                let balance = get_eth_balance(&addr).unwrap();
+                println!("Balance: [balance: {}]", balance);
+            }
         } else if matches.is_present("list-unspent") {
             let unspent = wallet.list_unspent();
             let hashes: Vec<String> = unspent.into_iter().map(|u| u.tx_hash).collect();
@@ -137,4 +144,10 @@ fn main() {
             }
         }
     }
+}
+
+#[tokio::main]
+async fn get_eth_balance(public_address: &str) -> Result<f64> {
+    let balance = check_address_info(public_address).await?;
+    Ok(balance)
 }

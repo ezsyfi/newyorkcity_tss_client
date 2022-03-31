@@ -235,7 +235,7 @@ impl Wallet {
         Some(res)
     }
 
-    pub fn get_crypto_address(&mut self) -> Result<()> {
+    pub fn get_crypto_address(&mut self) -> Result<String> {
         let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
@@ -246,13 +246,16 @@ impl Wallet {
 
             self.last_derived_pos = pos;
             println!("BTC Network: [{}], Address: [{}]", &self.network, address);
+            Ok(address.to_string())
         } else if coin_type == "eth" {
             let address = to_eth_address(&mk);
+
             println!("ETH address: {:?}", address);
+            Ok(address.to_string())
         } else {
-            panic!("Can't get address for coin type")
+            println!("Can't get address for coin type");
+            Ok("".to_owned())
         }
-        Ok(())
     }
 
     pub fn derived(&mut self) -> Result<()> {
