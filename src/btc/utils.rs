@@ -4,14 +4,85 @@ use anyhow::{anyhow, Result};
 use bitcoin::{self, Network};
 use curv::elliptic::curves::secp256_k1::PK;
 use curv::elliptic::curves::traits::ECPoint;
+use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 
 use crate::ecdsa::PrivateShare;
+use crate::utilities::dto::{BlockCypherAddress, BtcBalanceAggregator, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 
 pub const BTC_TESTNET: &str = "testnet";
+pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
 
-pub fn get_new_bitcoin_address(
+pub fn list_unspent_for_addresss(address: String) -> Result<Vec<UtxoAggregator>> {
+    let unspent_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
+    let res = reqwest::blocking::get(unspent_tx_url)?.text()?;
+    let address_balance_with_tx_refs: BlockCypherAddress = serde_json::from_str(res.as_str())?;
+    if let Some(tx_refs) = address_balance_with_tx_refs.txrefs {
+        Ok(tx_refs
+            .iter()
+            .map(|u| UtxoAggregator {
+                value: u.value,
+                height: u.block_height,
+                tx_hash: u.tx_hash.clone(),
+                tx_pos: u.tx_output_n,
+                address: address.clone(),
+            })
+            .collect())
+    } else {
+        Ok(Vec::new())
+    }
+}
+
+pub fn get_all_addresses_balance(
+    last_derived_pos: u32,
+    private_share: &PrivateShare,
+) -> Result<Vec<BtcBalanceAggregator>> {
+    let response: Result<Vec<BtcBalanceAggregator>> =
+        get_all_addresses(last_derived_pos, private_share)?
+            .into_iter()
+            .map(|a| get_address_balance(&a))
+            .collect();
+
+    // println!("get_all_addresses_balance {:#?}", response);
+    response
+}
+
+fn get_address_balance(address: &bitcoin::Address) -> Result<BtcBalanceAggregator> {
+    let balance_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
+    let res = reqwest::blocking::get(balance_url)?.text()?;
+    let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str())?;
+
+    Ok(BtcBalanceAggregator {
+        confirmed: address_balance.balance,
+        unconfirmed: address_balance.unconfirmed_balance,
+        address: address.to_string(),
+    })
+}
+
+pub fn get_all_addresses(
+    last_derived_pos: u32,
+    private_share: &PrivateShare,
+) -> Result<Vec<bitcoin::Address>> {
+    let init = 0;
+    let last_pos = last_derived_pos;
+
+    let mut response: Vec<bitcoin::Address> = Vec::new();
+
+    for n in init..=last_pos {
+        let mk = private_share
+            .master_key
+            .get_child(vec![BigInt::from(0), BigInt::from(n)]);
+
+        let bitcoin_address = to_bitcoin_address(BTC_TESTNET, &mk)?;
+
+        response.push(bitcoin_address);
+    }
+
+    Ok(response)
+}
+
+pub fn get_new_address(
     private_share: &PrivateShare,
     last_derived_pos: u32,
 ) -> Result<bitcoin::Address> {
@@ -48,7 +119,7 @@ pub fn get_test_private_share() -> PrivateShare {
 #[cfg(test)]
 mod tests {
     use crate::{
-        btc::utils::{get_new_bitcoin_address, get_test_private_share, BTC_TESTNET},
+        btc::utils::{get_new_address, get_test_private_share, BTC_TESTNET},
         ecdsa::PrivateShare,
         utilities::hd_wallet::derive_new_key,
     };
@@ -75,9 +146,33 @@ mod tests {
     #[test]
     fn test_get_new_bitcoin_address() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let addrs = get_new_bitcoin_address(&private_share, 0)?;
+        let addrs = get_new_address(&private_share, 0)?;
         let exp = "tb1qxyjt450heqv4ql8k7rp2qfmd4vrmncaquzw37r".to_string();
         assert_eq!(addrs.to_string(), exp);
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_all_addresses() -> Result<()> {
+        let private_share: PrivateShare = get_test_private_share();
+        let address_list = super::get_all_addresses(0, &private_share)?;
+        assert!(!address_list.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_all_addresses_balance() -> Result<()> {
+        let private_share: PrivateShare = get_test_private_share();
+        let address_balance_list = super::get_all_addresses_balance(0, &private_share)?;
+        assert!(!address_balance_list.is_empty());
+
+        let address_balance = address_balance_list.get(0).unwrap();
+        assert_eq!(address_balance.confirmed, 0);
+        assert_eq!(address_balance.unconfirmed, 0);
+        assert_eq!(
+            address_balance.address,
+            "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5"
+        );
         Ok(())
     }
 }

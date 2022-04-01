@@ -56,19 +56,15 @@ fn main() {
         let mut wallet: wallet::Wallet = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
-            wallet.get_crypto_address().unwrap();
+            wallet.get_crypto_address();
             wallet.save();
         } else if matches.is_present("get-balance") {
             if wallet.coin_type == "btc" {
-                let (unconfirmed, confirmed) = wallet.get_balance();
-                println!(
-                    "Network: [{}], Balance: [balance: {}, pending: {}]",
-                    network, confirmed, unconfirmed
-                );
+                wallet.get_balance();
             } else if wallet.coin_type == "eth" {
-                let addr = wallet.get_crypto_address().unwrap();
-                let balance = get_eth_balance(&addr).unwrap();
-                println!("Balance: [balance: {}]", balance);
+                // let addr = wallet.get_crypto_address().unwrap();
+                // let balance = get_eth_balance(&addr).unwrap();
+                // println!("Balance: [balance: {}]", balance);
             }
         } else if matches.is_present("list-unspent") {
             let unspent = wallet.list_unspent();
@@ -146,8 +142,3 @@ fn main() {
     }
 }
 
-#[tokio::main]
-async fn get_eth_balance(public_address: &str) -> Result<f64> {
-    let balance = check_address_info(public_address).await?;
-    Ok(balance)
-}

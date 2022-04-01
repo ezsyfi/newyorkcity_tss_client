@@ -14,7 +14,6 @@ use crate::{
 
 use super::utils::to_eth_address;
 
-
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn get_eth_addrs(

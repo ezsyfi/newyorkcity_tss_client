@@ -12,7 +12,7 @@
 //     #[test]
 //     fn get_address_test() {
 //         let mut w: Wallet = Wallet::load_from(TEST_WALLET_FILENAME);
-//         let a = w.get_new_bitcoin_address();
+//         let a = w.get_new_address();
 //         assert!(!a.to_string().is_empty())
 //     }
 
@@ -40,7 +40,7 @@
 //        let delta_pessimistic_fees = 0.00013; // 0.5 usd - 03/14/2019
 //        assert!(available_balance > to_send + delta_pessimistic_fees, "You need to refund the wallet");
 //
-//        let to_address = w.get_new_bitcoin_address(); // inner wallet tx
+//        let to_address = w.get_new_address(); // inner wallet tx
 //        let txid = w.send(to_address.to_string(), to_send, &client_shim);
 //        assert!(!txid.is_empty());
 //    }

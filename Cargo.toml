@@ -34,6 +34,7 @@ web3 = "0.18.0"
 anyhow = "1.0"
 openssl = { version = '0.10', features = ["vendored"] }
 tokio = { version = "1", features = ["full"] }
+futures = "0.3"
 thiserror = "1.0"
 
 [dependencies.zk-paillier]

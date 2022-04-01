@@ -14,10 +14,8 @@ use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
-use crate::eth::utils::to_eth_address;
-use crate::utilities::dto::{
-    BalanceAggregator, BlockCypherAddress, BlockCypherRawTx, MKPosDto, UtxoAggregator,
-};
+use crate::eth::utils::{check_address_info, to_eth_address};
+use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
 
@@ -235,26 +233,23 @@ impl Wallet {
         Some(res)
     }
 
-    pub fn get_crypto_address(&mut self) -> Result<String> {
+    pub fn get_crypto_address(&mut self) {
         let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
-            let address = to_bitcoin_address(&self.network, &mk)?;
-
+            let address = to_bitcoin_address(&self.network, &mk).unwrap();
             self.addresses_derivation_map
                 .insert(address.to_string(), MKPosDto { mk, pos });
-
             self.last_derived_pos = pos;
+
             println!("BTC Network: [{}], Address: [{}]", &self.network, address);
-            Ok(address.to_string())
         } else if coin_type == "eth" {
             let address = to_eth_address(&mk);
+            self.addresses_derivation_map
+                .insert(address.to_string(), MKPosDto { mk, pos });
+            self.last_derived_pos = pos;
 
             println!("ETH address: {:?}", address);
-            Ok(address.to_string())
-        } else {
-            println!("Can't get address for coin type");
-            Ok("".to_owned())
         }
     }
 
@@ -274,100 +269,45 @@ impl Wallet {
         Ok(())
     }
 
-    pub fn get_balance(&mut self) -> (i64, u64) {
-        let mut unconfirmed = 0;
-        let mut confirmed = 0;
-        for b in self.get_all_addresses_balance() {
-            unconfirmed += b.unconfirmed;
-            confirmed += b.confirmed;
+    pub fn get_balance(&mut self) {
+        let coin_type = &self.coin_type;
+        if coin_type == "btc" {
+            let mut unconfirmed = 0;
+            let mut confirmed = 0;
+            for b in
+                btc::utils::get_all_addresses_balance(self.last_derived_pos, &self.private_share)
+                    .unwrap()
+            {
+                unconfirmed += b.unconfirmed;
+                confirmed += b.confirmed;
+            }
+            println!(
+                "Network: [{}], Balance: [balance: {}, pending: {}]",
+                &self.network, confirmed, unconfirmed
+            );
+        } else if coin_type == "eth" {
+            let total = get_eth_balance(self.last_derived_pos, &self.private_share).unwrap();
+            println!("ETH Balance: [{}]", total); 
         }
-
-        (unconfirmed, confirmed)
     }
 
     pub fn list_unspent(&self) -> Vec<UtxoAggregator> {
-        let response: Vec<UtxoAggregator> = self
-            .get_all_addresses()
-            .into_iter()
-            .map(|a| self.list_unspent_for_addresss(a.to_string()))
-            .flatten()
-            .collect();
+        let response: Vec<UtxoAggregator> =
+            btc::utils::get_all_addresses(self.last_derived_pos, &self.private_share)
+                .unwrap()
+                .into_iter()
+                .map(|a| btc::utils::list_unspent_for_addresss(a.to_string()).unwrap())
+                .flatten()
+                .collect();
 
         response
     }
+}
 
-    /* PRIVATE */
-    fn list_unspent_for_addresss(&self, address: String) -> Vec<UtxoAggregator> {
-        let unspent_tx_url =
-            BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";
-        let res = reqwest::blocking::get(unspent_tx_url)
-            .unwrap()
-            .text()
-            .unwrap();
-
-        let address_balance_with_tx_refs: BlockCypherAddress =
-            serde_json::from_str(res.as_str()).unwrap();
-        if let Some(tx_refs) = address_balance_with_tx_refs.txrefs {
-            tx_refs
-                .iter()
-                .map(|u| UtxoAggregator {
-                    value: u.value,
-                    height: u.block_height,
-                    tx_hash: u.tx_hash.clone(),
-                    tx_pos: u.tx_output_n,
-                    address: address.clone(),
-                })
-                .collect()
-        } else {
-            Vec::new()
-        }
-    }
-
-    fn get_all_addresses_balance(&self) -> Vec<BalanceAggregator> {
-        let response: Vec<BalanceAggregator> = self
-            .get_all_addresses()
-            .into_iter()
-            .map(|a| Self::get_address_balance(&a))
-            .collect();
-
-        response
-    }
-
-    fn get_address_balance(address: &bitcoin::Address) -> BalanceAggregator {
-        let balance_url =
-            BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
-        let res = reqwest::blocking::get(balance_url).unwrap().text().unwrap();
-        let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str()).unwrap();
-        println!("{:#?}", address_balance);
-
-        BalanceAggregator {
-            confirmed: address_balance.balance,
-            unconfirmed: address_balance.unconfirmed_balance,
-            address: address.to_string(),
-        }
-    }
-
-    fn get_all_addresses(&self) -> Vec<bitcoin::Address> {
-        let init = 0;
-        let last_pos = self.last_derived_pos;
-
-        let mut response: Vec<bitcoin::Address> = Vec::new();
-
-        for n in init..=last_pos {
-            let mk = self
-                .private_share
-                .master_key
-                .get_child(vec![BigInt::from(0), BigInt::from(n)]);
-            let bitcoin_address = match to_bitcoin_address(&self.network, &mk) {
-                Ok(address) => address,
-                Err(_) => panic!("Error while creating btc address"),
-            };
-
-            response.push(bitcoin_address);
-        }
-
-        response
-    }
+#[tokio::main]
+async fn get_eth_balance(last_derived_pos: u32, private_share: &PrivateShare) -> Result<f64> {
+    let balance = check_address_info(last_derived_pos, private_share).await?;
+    Ok(balance)
 }
 
 #[cfg(test)]
