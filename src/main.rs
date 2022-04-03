@@ -59,13 +59,7 @@ fn main() {
             wallet.get_crypto_address();
             wallet.save();
         } else if matches.is_present("get-balance") {
-            if wallet.coin_type == "btc" {
-                wallet.get_balance();
-            } else if wallet.coin_type == "eth" {
-                // let addr = wallet.get_crypto_address().unwrap();
-                // let balance = get_eth_balance(&addr).unwrap();
-                // println!("Balance: [balance: {}]", balance);
-            }
+            wallet.get_balance();
         } else if matches.is_present("list-unspent") {
             let unspent = wallet.list_unspent();
             let hashes: Vec<String> = unspent.into_iter().map(|u| u.tx_hash).collect();
@@ -125,6 +119,7 @@ fn main() {
                 let amount_btc: &str = matches.value_of("amount").unwrap();
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
+
                 let tx_state = wallet
                     .send(
                         to.to_string(),
@@ -133,6 +128,7 @@ fn main() {
                     )
                     .unwrap();
                 wallet.save();
+                
                 println!(
                     "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
                     network, amount_btc, to, tx_state
@@ -141,4 +137,3 @@ fn main() {
         }
     }
 }
-

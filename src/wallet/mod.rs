@@ -1,4 +1,5 @@
 use anyhow::Result;
+use bitcoin::hashes::hex::ToHex;
 use bitcoin::{self};
 use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::ECPoint;
@@ -14,7 +15,9 @@ use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
-use crate::eth::utils::{check_address_info, to_eth_address};
+use crate::eth::utils::{
+    check_address_info, establish_web3_connection, get_balance_in_eth, to_eth_address,
+};
 use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
@@ -246,7 +249,7 @@ impl Wallet {
         } else if coin_type == "eth" {
             let address = to_eth_address(&mk);
             self.addresses_derivation_map
-                .insert(address.to_string(), MKPosDto { mk, pos });
+                .insert(format!("{:?}", address), MKPosDto { mk, pos });
             self.last_derived_pos = pos;
 
             println!("ETH address: {:?}", address);
@@ -287,7 +290,7 @@ impl Wallet {
             );
         } else if coin_type == "eth" {
             let total = get_eth_balance(self.last_derived_pos, &self.private_share).unwrap();
-            println!("ETH Balance: [{}]", total); 
+            println!("ETH Balance: [{}]", total);
         }
     }
 

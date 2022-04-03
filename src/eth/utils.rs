@@ -22,7 +22,7 @@ pub async fn get_all_addresses_balance(
     let result: Vec<f64> = try_join_all(
         addresses
             .iter()
-            .map(|a| get_balance_in_eth(a.to_string(), web3_connection)),
+            .map(|a| get_balance_in_eth(format!("{:?}", a), web3_connection)),
     )
     .await?;
     Ok(result)
@@ -43,7 +43,6 @@ pub fn get_all_addresses(
             .get_child(vec![BigInt::from(0), BigInt::from(n)]);
 
         let eth_address = to_eth_address(&mk);
-
         response.push(eth_address);
     }
 
@@ -69,16 +68,13 @@ pub async fn get_balance_in_eth(
     Ok(wei_to_eth(wei_balance))
 }
 
-pub async fn get_balance(
-    public_address: String,
-    web3_connection: &Web3<WebSocket>,
-) -> Result<U256> {
+async fn get_balance(public_address: String, web3_connection: &Web3<WebSocket>) -> Result<U256> {
     let wallet_address = Address::from_str(public_address.as_str())?;
     let balance = web3_connection.eth().balance(wallet_address, None).await?;
     Ok(balance)
 }
 
-pub fn wei_to_eth(wei_val: U256) -> f64 {
+fn wei_to_eth(wei_val: U256) -> f64 {
     let res = wei_val.as_u128() as f64;
     res / 1_000_000_000_000_000_000.0
 }
@@ -98,7 +94,7 @@ pub async fn check_address_info(
     let balance_l = get_all_addresses_balance(last_derived_pos, private_share, &web3_con).await?;
     let mut total = 0.0;
     for b in balance_l {
-       total += b
+        total += b
     }
     Ok(total)
 }
