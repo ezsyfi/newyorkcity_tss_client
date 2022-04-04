@@ -2,11 +2,9 @@
 
 #[macro_use]
 extern crate clap;
-use anyhow::Result;
 use clap::App;
 
 use client::escrow;
-use client::eth::utils::check_address_info;
 use client::utilities::requests::ClientShim;
 use client::wallet;
 use floating_duration::TimeFormat;
@@ -53,7 +51,7 @@ fn main() {
         let _escrow = escrow::Escrow::new();
         println!("Network: [{}], Escrow initiated", &network);
     } else if let Some(matches) = matches.subcommand_matches("wallet") {
-        let mut wallet: wallet::Wallet = wallet::Wallet::load();
+        let mut wallet:  wallet::Wallet<'static> = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
             wallet.get_crypto_address();
@@ -120,19 +118,13 @@ fn main() {
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
 
-                let tx_state = wallet
-                    .send(
-                        to.to_string(),
-                        amount_btc.to_string().parse::<f32>().unwrap(),
-                        &client_shim,
-                    )
-                    .unwrap();
-                wallet.save();
-
-                println!(
-                    "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
-                    network, amount_btc, to, tx_state
+                wallet.send(
+                    to,
+                    amount_btc.to_string().parse::<f32>().unwrap(),
+                    &client_shim,
                 );
+
+                wallet.save();
             }
         }
     }

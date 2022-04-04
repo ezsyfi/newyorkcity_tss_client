@@ -36,6 +36,7 @@ openssl = { version = '0.10', features = ["vendored"] }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 thiserror = "1.0"
+rlp = "0.5.1"
 
 [dependencies.zk-paillier]
 git = "https://github.com/KZen-networks/zk-paillier"
