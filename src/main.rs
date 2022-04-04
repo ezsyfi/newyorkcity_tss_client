@@ -51,7 +51,7 @@ fn main() {
         let _escrow = escrow::Escrow::new();
         println!("Network: [{}], Escrow initiated", &network);
     } else if let Some(matches) = matches.subcommand_matches("wallet") {
-        let mut wallet:  wallet::Wallet<'static> = wallet::Wallet::load();
+        let mut wallet: wallet::Wallet<'static> = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
             wallet.get_crypto_address();

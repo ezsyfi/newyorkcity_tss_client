@@ -1,10 +1,10 @@
+use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
 use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_key};
+use crate::ecdsa::{sign, PrivateShare};
 use crate::utilities::dto::{MKPosAddressDto, MKPosDto, UtxoAggregator};
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
-use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
-use crate::ecdsa::{sign, PrivateShare};
 
 use anyhow::{anyhow, Result};
 use bitcoin::util::bip143::SigHashCache;
@@ -26,7 +26,6 @@ use serde_json;
 
 use hex;
 use std::str::FromStr;
-
 
 #[derive(Serialize, Deserialize)]
 pub struct BtcRawTxFFIResp {

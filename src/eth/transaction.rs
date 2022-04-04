@@ -1,6 +1,8 @@
 use rlp::RlpStream;
-use web3::{types::{Address, U256, SignedTransaction, U64, AccessList}, signing::{self, Signature}};
-
+use web3::{
+    signing::{self, Signature},
+    types::{AccessList, Address, SignedTransaction, U256, U64},
+};
 
 pub const LEGACY_TX_ID: u64 = 0;
 pub const ACCESSLISTS_TX_ID: u64 = 1;
