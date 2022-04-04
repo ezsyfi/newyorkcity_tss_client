@@ -1,11 +1,11 @@
 use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_key};
-// // iOS bindings
-use crate::ecdsa::{sign, PrivateShare};
-
 use crate::utilities::dto::{MKPosAddressDto, MKPosDto, UtxoAggregator};
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
+use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
+use crate::ecdsa::{sign, PrivateShare};
+
 use anyhow::{anyhow, Result};
 use bitcoin::util::bip143::SigHashCache;
 use curv::arithmetic::traits::Converter; // Need for signing
@@ -27,7 +27,6 @@ use serde_json;
 use hex;
 use std::str::FromStr;
 
-use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
 
 #[derive(Serialize, Deserialize)]
 pub struct BtcRawTxFFIResp {
@@ -36,7 +35,7 @@ pub struct BtcRawTxFFIResp {
 }
 
 pub fn create_raw_tx(
-    to_address: String,
+    to_address: &str,
     amount_btc: f32,
     client_shim: &ClientShim,
     last_derived_pos: u32,
@@ -92,7 +91,6 @@ pub fn create_raw_tx(
         "amount_satoshi: {} - total_selected: {}  ",
         amount_satoshi, total_selected
     );
-    println!("{} - back", total_selected - amount_satoshi);
 
     let to_btc_adress = bitcoin::Address::from_str(&to_address)?;
     let txs_out = vec![
@@ -161,7 +159,6 @@ pub fn create_raw_tx(
 
         signed_transaction.input[i].witness = vec![sig_vec, pk_vec];
     }
-    // (hex::encode(serialize(&signed_transaction)), Some(change_addr_resp))
     Ok(Some(BtcRawTxFFIResp {
         raw_tx_hex: hex::encode(serialize(&signed_transaction)),
         change_address_payload,
@@ -304,7 +301,7 @@ pub extern "C" fn get_raw_btc_tx(
     );
 
     let raw_tx_opt = match create_raw_tx(
-        to_address.to_owned(),
+        to_address,
         c_amount_btc,
         &client_shim,
         c_last_derived_pos,
