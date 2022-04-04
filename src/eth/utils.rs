@@ -14,15 +14,16 @@ use web3::{
 use crate::ecdsa::PrivateShare;
 
 pub async fn get_all_addresses_balance(
+    web3_connection_url: &str,
     last_derived_pos: u32,
     private_share: &PrivateShare,
-    web3_connection: &Web3<transports::WebSocket>,
 ) -> Result<Vec<f64>> {
+    let web3_connection = establish_web3_connection(web3_connection_url).await?;
     let addresses = get_all_addresses(last_derived_pos, private_share).unwrap();
     let result: Vec<f64> = try_join_all(
         addresses
             .iter()
-            .map(|a| get_balance_in_eth(format!("{:?}", a), web3_connection)),
+            .map(|a| get_balance_in_eth(format!("{:?}", a), &web3_connection)),
     )
     .await?;
     Ok(result)
@@ -55,11 +56,6 @@ pub fn to_eth_address(mk: &MasterKey2) -> Address {
     Address::from_slice(&hash[12..])
 }
 
-pub async fn establish_web3_connection(url: &str) -> Result<Web3<transports::WebSocket>> {
-    let transport = transports::WebSocket::new(url).await?;
-    Ok(Web3::new(transport))
-}
-
 pub async fn get_balance_in_eth(
     public_address: String,
     web3_connection: &Web3<transports::WebSocket>,
@@ -79,22 +75,14 @@ fn wei_to_eth(wei_val: U256) -> f64 {
     res / 1_000_000_000_000_000_000.0
 }
 
-pub async fn check_address_info(
-    last_derived_pos: u32,
-    private_share: &PrivateShare,
-) -> Result<f64> {
-    let web3_con = establish_web3_connection(
-        "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
-    )
-    .await?;
+pub fn eth_to_wei(eth_val: f64) -> U256 {
+    let result = eth_val * 1_000_000_000_000_000_000.0;
+    let result = result as u128;
 
-    let block_number = web3_con.eth().block_number().await?;
-    println!("block number: {}", &block_number);
+    U256::from(result)
+}
 
-    let balance_l = get_all_addresses_balance(last_derived_pos, private_share, &web3_con).await?;
-    let mut total = 0.0;
-    for b in balance_l {
-        total += b
-    }
-    Ok(total)
+pub async fn establish_web3_connection(url: &str) -> Result<Web3<transports::WebSocket>> {
+    let transport = transports::WebSocket::new(url).await?;
+    Ok(Web3::new(transport))
 }
