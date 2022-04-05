@@ -1,10 +1,9 @@
 use super::utils::eth_to_wei;
 use crate::ecdsa::sign::a_sign;
-use crate::ecdsa::{sign, PrivateShare};
+use crate::ecdsa::PrivateShare;
 use crate::eth::transaction::{Transaction, EIP1559_TX_ID};
 use crate::eth::utils::{establish_web3_connection, get_balance_in_eth, to_eth_address};
 use crate::utilities::a_requests::AsyncClientShim;
-use crate::utilities::requests::ClientShim;
 
 use anyhow::Result;
 use bitcoin::secp256k1::Message;
