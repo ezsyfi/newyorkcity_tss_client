@@ -2,9 +2,11 @@
 
 #[macro_use]
 extern crate clap;
+use anyhow::Result;
 use clap::App;
 
 use client::escrow;
+use client::eth::utils::check_address_info;
 use client::utilities::requests::ClientShim;
 use client::wallet;
 use floating_duration::TimeFormat;
@@ -34,7 +36,6 @@ fn main() {
     );
 
     let network = "testnet".to_string();
-
     if let Some(matches) = matches.subcommand_matches("create-wallet") {
         println!("Network: [{}], Creating wallet", network);
         let coin_type: &str = matches.value_of("coin-type").unwrap();
@@ -55,14 +56,10 @@ fn main() {
         let mut wallet: wallet::Wallet = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
-            wallet.get_crypto_address().unwrap();
+            wallet.get_crypto_address();
             wallet.save();
         } else if matches.is_present("get-balance") {
-            let (unconfirmed, confirmed) = wallet.get_balance();
-            println!(
-                "Network: [{}], Balance: [balance: {}, pending: {}]",
-                network, confirmed, unconfirmed
-            );
+            wallet.get_balance();
         } else if matches.is_present("list-unspent") {
             let unspent = wallet.list_unspent();
             let hashes: Vec<String> = unspent.into_iter().map(|u| u.tx_hash).collect();
@@ -122,6 +119,7 @@ fn main() {
                 let amount_btc: &str = matches.value_of("amount").unwrap();
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
+
                 let tx_state = wallet
                     .send(
                         to.to_string(),
@@ -130,6 +128,7 @@ fn main() {
                     )
                     .unwrap();
                 wallet.save();
+
                 println!(
                     "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
                     network, amount_btc, to, tx_state

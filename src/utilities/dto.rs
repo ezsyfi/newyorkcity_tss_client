@@ -10,7 +10,7 @@ pub struct SignSecondMsgRequest {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct BalanceAggregator {
+pub struct BtcBalanceAggregator {
     pub address: String,
     pub confirmed: u64,
     pub unconfirmed: i64,

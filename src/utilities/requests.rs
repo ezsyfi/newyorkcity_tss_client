@@ -58,11 +58,7 @@ where
         b = b.bearer_auth(client_shim.auth_token.clone().unwrap());
         b = b.header("user_id", client_shim.user_id.clone());
     }
-
     let res = b.json(&body).send();
-
-    let body_json = serde_json::to_string(&body)?;
-    println!("{:#?}", body_json);
 
     info!("(req {}, took: {})", path, TimeFormat(start.elapsed()));
 

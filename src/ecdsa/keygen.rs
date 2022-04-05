@@ -11,7 +11,7 @@ use kms::ecdsa::two_party::*;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 use zk_paillier::zkproofs::SALT_STRING;
 
-use crate::utilities::err_handling::error_to_c_string;
+use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::requests::ClientShim;
 
 use super::super::utilities::requests;
@@ -111,19 +111,34 @@ pub extern "C" fn get_client_master_key(
     let raw_endpoint = unsafe { CStr::from_ptr(c_endpoint) };
     let endpoint = match raw_endpoint.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw endpoint")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "endpoint".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
     let auth_token = match raw_auth_token.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding auth token")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "auth_token".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
     let user_id = match user_id_json.to_str() {
         Ok(s) => s,
-        Err(_) => return error_to_c_string(anyhow!("E100: Error while decoding raw user id")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "user_id".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let client_shim = ClientShim::new(
@@ -134,16 +149,29 @@ pub extern "C" fn get_client_master_key(
 
     let private_share: PrivateShare = match get_master_key(&client_shim) {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(anyhow!("E103: get master key failed: {}", e)),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E103 {
+                msg: "private_share".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let private_share_json = match serde_json::to_string(&private_share) {
         Ok(share) => share,
-        Err(_) => return error_to_c_string(anyhow!("E102: parse private share to JSON failed")),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E102 {
+                msg: "private_share".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     match CString::new(private_share_json) {
         Ok(s) => s.into_raw(),
-        Err(_) => error_to_c_string(anyhow!("E101: Error while encoding private share")),
+        Err(e) => error_to_c_string(ErrorFFIKind::E101 {
+            msg: "private_share".to_owned(),
+            e: e.to_string(),
+        }),
     }
 }
