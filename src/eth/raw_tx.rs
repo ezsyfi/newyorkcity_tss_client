@@ -2,7 +2,7 @@ use super::utils::eth_to_wei;
 use crate::ecdsa::sign::a_sign;
 use crate::ecdsa::{sign, PrivateShare};
 use crate::eth::transaction::{Transaction, EIP1559_TX_ID};
-use crate::eth::utils::{establish_web3_connection, get_balance_in_eth};
+use crate::eth::utils::{establish_web3_connection, get_balance_in_eth, to_eth_address};
 use crate::utilities::a_requests::AsyncClientShim;
 use crate::utilities::requests::ClientShim;
 
@@ -27,7 +27,6 @@ async fn create_eth_transaction(to: Address, eth_value: f64) -> Result<Transacti
 #[allow(clippy::too_many_arguments)]
 pub async fn sign_and_send(
     web3_connection_url: &str,
-    from_address: Address,
     to_address: Address,
     eth_value: f64,
     client_shim: &AsyncClientShim,
@@ -56,6 +55,9 @@ pub async fn sign_and_send(
         }
         _ => tx_params.gas_price,
     };
+
+    let from_address = to_eth_address(mk);
+
     let web3 = establish_web3_connection(web3_connection_url).await?;
     let (nonce, gas_price, chain_id) = futures::future::try_join3(
         maybe!(tx_params.nonce, web3.eth().transaction_count(from_address, None)),
@@ -63,7 +65,10 @@ pub async fn sign_and_send(
         maybe!(tx_params.chain_id.map(U256::from), web3.eth().chain_id()),
     )
     .await?;
+
+    // Check send address balance before sending
     get_balance_in_eth(format!("{:?}", from_address), &web3).await?;
+
     let chain_id = chain_id.as_u64();
     println!("chain_id: {}", chain_id);
 
@@ -73,7 +78,6 @@ pub async fn sign_and_send(
         }
         _ => gas_price,
     };
-    // : U256::from(800000012)
     let tx = Transaction {
         to: tx_params.to,
         nonce,

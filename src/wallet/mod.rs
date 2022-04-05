@@ -356,7 +356,6 @@ async fn send_eth(
 
     let result = sign_and_send(
         "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
-        Address::from_str("0x5Ae2aaDE05B904130B91DF23845a34Ef26F80864")?,
         Address::from_str("0x27c388AF3a2DF6994599638f10A1Ac73c74afe78")?,
         eth_value,
         client_shim,
