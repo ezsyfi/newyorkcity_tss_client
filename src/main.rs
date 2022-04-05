@@ -5,6 +5,7 @@ extern crate clap;
 use clap::App;
 
 use client::escrow;
+use client::utilities::a_requests::AsyncClientShim;
 use client::utilities::requests::ClientShim;
 use client::wallet;
 use floating_duration::TimeFormat;
@@ -33,6 +34,12 @@ fn main() {
         "cli_app".to_owned(),
     );
 
+    let mut a_client_shim = AsyncClientShim::new(
+        endpoint.to_string(),
+        Some("cli_token".to_owned()),
+        "cli_app".to_owned(),
+    );
+
     let network = "testnet".to_string();
     if let Some(matches) = matches.subcommand_matches("create-wallet") {
         println!("Network: [{}], Creating wallet", network);
@@ -51,7 +58,7 @@ fn main() {
         let _escrow = escrow::Escrow::new();
         println!("Network: [{}], Escrow initiated", &network);
     } else if let Some(matches) = matches.subcommand_matches("wallet") {
-        let mut wallet: wallet::Wallet<'static> = wallet::Wallet::load();
+        let mut wallet: wallet::Wallet = wallet::Wallet::load();
 
         if matches.is_present("new-address") {
             wallet.get_crypto_address();
@@ -118,10 +125,12 @@ fn main() {
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
 
+                a_client_shim.auth_token = Some(token.to_owned());
+
                 wallet.send(
                     to,
                     amount_btc.to_string().parse::<f32>().unwrap(),
-                    &client_shim,
+                    &a_client_shim,
                 );
 
                 wallet.save();

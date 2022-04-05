@@ -5,6 +5,7 @@ pub mod dto;
 pub mod err_handling;
 pub mod hd_wallet;
 pub mod requests;
+pub mod a_requests;
 
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]

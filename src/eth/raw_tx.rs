@@ -1,7 +1,9 @@
 use super::utils::eth_to_wei;
+use crate::ecdsa::sign::a_sign;
 use crate::ecdsa::{sign, PrivateShare};
 use crate::eth::transaction::{Transaction, EIP1559_TX_ID};
 use crate::eth::utils::establish_web3_connection;
+use crate::utilities::a_requests::AsyncClientShim;
 use crate::utilities::requests::ClientShim;
 
 use anyhow::Result;
@@ -9,8 +11,6 @@ use curv::arithmetic::traits::Converter; // Need for signing
 use curv::BigInt;
 use hex;
 use kms::ecdsa::two_party::MasterKey2;
-use tokio::sync::mpsc;
-use tokio::task;
 use web3::types::{Address, TransactionParameters, H256, U256, U64};
 use web3::{self, signing::Signature};
 
@@ -28,7 +28,7 @@ pub async fn sign_and_send(
     from: Address,
     to: Address,
     eth_value: f64,
-    client_shim: &ClientShim,
+    client_shim: &AsyncClientShim,
     pos: u32,
     private_share: &PrivateShare,
     mk: &MasterKey2,
@@ -61,7 +61,9 @@ pub async fn sign_and_send(
         maybe!(tx_params.chain_id.map(U256::from), web3.eth().chain_id()),
     )
     .await?;
+
     let chain_id = chain_id.as_u64();
+    
     let max_priority_fee_per_gas = match tx_params.transaction_type {
         Some(tx_type) if tx_type == U64::from(EIP1559_TX_ID) => {
             tx_params.max_priority_fee_per_gas.unwrap_or(gas_price)
@@ -83,30 +85,15 @@ pub async fn sign_and_send(
 
     let sig_hash = tx.get_hash(chain_id);
 
-    // let sig = sign(
-    //     client_shim,
-    //     BigInt::from_hex(&hex::encode(&sig_hash[..])).unwrap(),
-    //     mk,
-    //     BigInt::from(0),
-    //     BigInt::from(pos),
-    //     &private_share.id,
-    // )?;
-
-    // let (txc, mut rxc) = mpsc::channel(2);
-
-    // let worker = task::spawn_blocking(move || {
-    //     txc.blocking_send(sign(
-    //         cl,
-    //         BigInt::from_hex(&hex::encode(&sig_hash[..])).unwrap(),
-    //         mk,
-    //         BigInt::from(0),
-    //         BigInt::from(pos),
-    //         &private_share.id,
-    //     ))
-    //     .unwrap();
-    // });
-    // let sig = rxc.recv().await.unwrap()?;
-    // worker.await.unwrap();
+    let sig = a_sign(
+        client_shim,
+        BigInt::from_hex(&hex::encode(&sig_hash[..])).unwrap(),
+        mk,
+        BigInt::from(0),
+        BigInt::from(pos),
+        &private_share.id,
+    )
+    .await?;
 
     let r = H256::from_slice(&BigInt::to_bytes(&sig.r));
     let s = H256::from_slice(&BigInt::to_bytes(&sig.s));

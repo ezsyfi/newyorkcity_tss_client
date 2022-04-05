@@ -19,6 +19,7 @@ use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_publ
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::to_eth_address;
+use crate::utilities::a_requests::AsyncClientShim;
 use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
@@ -197,40 +198,41 @@ impl Wallet {
         Wallet::load_from(WALLET_FILENAME)
     }
 
-    pub fn send(&mut self, to_address: &str, amount: f32, client_shim: &ClientShim) {
+    pub fn send(&mut self, to_address: &str, amount: f32, client_shim: &AsyncClientShim) {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
-            let raw_tx_opt = btc::raw_tx::create_raw_tx(
-                to_address,
-                amount,
-                client_shim,
-                self.last_derived_pos,
-                &self.private_share,
-                &self.addresses_derivation_map,
-            );
-            let raw_tx = match raw_tx_opt {
-                Ok(tx) => tx,
-                Err(e) => {
-                    panic!("Unable to create raw transaction {}", e);
-                }
-            };
-            let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
-            let raw_tx = BlockCypherRawTx {
-                tx: raw_tx.unwrap().raw_tx_hex,
-            };
-            let tx_state = reqwest::blocking::Client::new()
-                .post(raw_tx_url)
-                .json(&raw_tx)
-                .send()
-                .unwrap()
-                .text()
-                .unwrap();
+            // let raw_tx_opt = btc::raw_tx::create_raw_tx(
+            //     to_address,
+            //     amount,
+            //     client_shim,
+            //     self.last_derived_pos,
+            //     &self.private_share,
+            //     &self.addresses_derivation_map,
+            // );
+            // let raw_tx = match raw_tx_opt {
+            //     Ok(tx) => tx,
+            //     Err(e) => {
+            //         panic!("Unable to create raw transaction {}", e);
+            //     }
+            // };
+            // let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
+            // let raw_tx = BlockCypherRawTx {
+            //     tx: raw_tx.unwrap().raw_tx_hex,
+            // };
+            // let tx_state = reqwest::blocking::Client::new()
+            //     .post(raw_tx_url)
+            //     .json(&raw_tx)
+            //     .send()
+            //     .unwrap()
+            //     .text()
+            //     .unwrap();
 
-            println!(
-                "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
-                &self.network, amount, &to_address, tx_state
-            );
+            // println!(
+            //     "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
+            //     &self.network, amount, &to_address, tx_state
+            // );
         } else if coin_type == "eth" {
+            
             let tx_hash = send_eth(
                 amount as f64,
                 client_shim,
@@ -239,6 +241,7 @@ impl Wallet {
                 &self.addresses_derivation_map,
             )
             .unwrap();
+
             println!(
                 "Sent {} ETH to address {}. Transaction State: {:?}",
                 amount, &to_address, tx_hash
@@ -337,7 +340,7 @@ async fn get_eth_balance(last_derived_pos: u32, private_share: &PrivateShare) ->
 #[tokio::main]
 async fn send_eth(
     eth_value: f64,
-    client_shim: &ClientShim,
+    client_shim: &AsyncClientShim,
     pos: u32,
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
