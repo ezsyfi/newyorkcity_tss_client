@@ -128,7 +128,7 @@ fn main() {
                     )
                     .unwrap();
                 wallet.save();
-                
+
                 println!(
                     "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
                     network, amount_btc, to, tx_state
