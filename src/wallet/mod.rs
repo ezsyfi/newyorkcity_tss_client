@@ -198,7 +198,7 @@ impl Wallet {
         Wallet::load_from(WALLET_FILENAME)
     }
 
-    pub fn send(&mut self, to_address: &str, amount: f32, client_shim: &AsyncClientShim) {
+    pub fn send(&mut self, to_address: &str, amount: f64, client_shim: &AsyncClientShim) {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
             // let raw_tx_opt = btc::raw_tx::create_raw_tx(
@@ -232,9 +232,9 @@ impl Wallet {
             //     &self.network, amount, &to_address, tx_state
             // );
         } else if coin_type == "eth" {
-            
+
             let tx_hash = send_eth(
-                amount as f64,
+                amount,
                 client_shim,
                 2,
                 &self.private_share,

@@ -129,7 +129,7 @@ fn main() {
 
                 wallet.send(
                     to,
-                    amount_btc.to_string().parse::<f32>().unwrap(),
+                    amount_btc.to_string().parse::<f64>().unwrap(),
                     &a_client_shim,
                 );
 

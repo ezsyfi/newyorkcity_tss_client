@@ -101,9 +101,9 @@
                 "wallet",
                 "send",
                 "-a",
-                "0.0001",
+                "0.001",
                 "-t",
-                "tb1ql7w62elx9ucw4pj5lgw4l028hmuw80sndtntxt"
+                "0x27c388AF3a2DF6994599638f10A1Ac73c74afe78"
             ],
             "cwd": "${workspaceFolder}"
         },
