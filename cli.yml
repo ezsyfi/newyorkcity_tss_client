@@ -55,6 +55,11 @@ subcommands:
                     about: Send a transaction
                     version: "1.0"
                     args:
+                        - from:
+                              short: f
+                              required: true
+                              value_name: from
+                              help: Sender
                         - to:
                               short: t
                               required: true
@@ -64,7 +69,7 @@ subcommands:
                               short: a
                               required: true
                               value_name: amount
-                              help: Amount in BTC
+                              help: Amount in BTC/ETH
                         - token:
                               short: c
                               required: true

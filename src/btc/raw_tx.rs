@@ -35,7 +35,7 @@ pub struct BtcRawTxFFIResp {
 
 pub fn create_raw_tx(
     to_address: &str,
-    amount_btc: f32,
+    amount_btc: f64,
     client_shim: &ClientShim,
     last_derived_pos: u32,
     private_share: &PrivateShare,
@@ -64,7 +64,7 @@ pub fn create_raw_tx(
 
     /* Specify "vout" array aka Transaction Outputs */
     let relay_fees = 10_000; // Relay fees for miner
-    let amount_satoshi = (amount_btc * 100_000_000 as f32) as u64;
+    let amount_satoshi = (amount_btc * 100_000_000.0) as u64;
 
     let (change_pos, change_mk) = derive_new_key(private_share, last_derived_pos);
 
@@ -167,7 +167,7 @@ pub fn create_raw_tx(
 // TODO: handle fees
 // Select all txin enough to pay the amount
 fn select_tx_in(
-    amount_btc: f32,
+    amount_btc: f64,
     last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Result<Vec<UtxoAggregator>> {
@@ -203,7 +203,7 @@ pub extern "C" fn get_raw_btc_tx(
     c_auth_token: *const c_char,
     c_user_id: *const c_char,
     c_to_address: *const c_char,
-    c_amount_btc: f32,
+    c_amount_btc: f64,
     c_last_derived_pos: u32,
     c_private_share_json: *const c_char,
     c_addresses_derivation_map: *const c_char,

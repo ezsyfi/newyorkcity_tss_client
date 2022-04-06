@@ -120,6 +120,7 @@ fn main() {
             );
         } else if matches.is_present("send") {
             if let Some(matches) = matches.subcommand_matches("send") {
+                let from: &str = matches.value_of("from").unwrap();
                 let to: &str = matches.value_of("to").unwrap();
                 let amount_btc: &str = matches.value_of("amount").unwrap();
                 let token: &str = matches.value_of("token").unwrap();
@@ -128,6 +129,7 @@ fn main() {
                 a_client_shim.auth_token = Some(token.to_owned());
 
                 wallet.send(
+                    from,
                     to,
                     amount_btc.to_string().parse::<f64>().unwrap(),
                     &a_client_shim,

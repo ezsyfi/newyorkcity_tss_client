@@ -32,16 +32,21 @@ pub fn sign(
     y_pos: BigInt,
     id: &str,
 ) -> Result<party_one::SignatureRecid> {
+
+    // Choose ephemeral key
     let (eph_key_gen_first_message_party_two, eph_comm_witness, eph_ec_key_pair_party2) =
         MasterKey2::sign_first_message();
 
     let request: party_two::EphKeyGenFirstMsg = eph_key_gen_first_message_party_two;
+
+    // Repeat Key Generation protocol for ephemeral key to obtain random point on curve that will be used in generating signature
     let sign_party_one_first_message: party_one::EphKeyGenFirstMsg =
         match requests::postb(client_shim, &format!("/ecdsa/sign/{}/first", id), &request)? {
             Some(s) => s,
             None => return Err(anyhow!("party1 sign first message request failed")),
         };
 
+    // Generate encryption of derivative of the signature, called c3
     let party_two_sign_message = mk.sign_second_message(
         &eph_ec_key_pair_party2,
         eph_comm_witness,
@@ -49,6 +54,7 @@ pub fn sign(
         &message,
     );
 
+    // Send c3 to P1 to verify and get valid signature
     let signature = match get_signature(
         client_shim,
         message,

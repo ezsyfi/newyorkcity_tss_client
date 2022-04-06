@@ -198,9 +198,17 @@ impl Wallet {
         Wallet::load_from(WALLET_FILENAME)
     }
 
-    pub fn send(&mut self, to_address: &str, amount: f64, client_shim: &AsyncClientShim) {
+    pub fn send(
+        &mut self,
+        from_address: &str,
+        to_address: &str,
+        amount: f64,
+        client_shim: &AsyncClientShim,
+    ) {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
+            // TODO: Update all ClientShim to use async reqwest
+
             // let raw_tx_opt = btc::raw_tx::create_raw_tx(
             //     to_address,
             //     amount,
@@ -232,11 +240,11 @@ impl Wallet {
             //     &self.network, amount, &to_address, tx_state
             // );
         } else if coin_type == "eth" {
-
             let tx_hash = send_eth(
                 amount,
                 client_shim,
-                2,
+                from_address,
+                to_address,
                 &self.private_share,
                 &self.addresses_derivation_map,
             )
@@ -341,22 +349,17 @@ async fn get_eth_balance(last_derived_pos: u32, private_share: &PrivateShare) ->
 async fn send_eth(
     eth_value: f64,
     client_shim: &AsyncClientShim,
-    pos: u32,
+    from: &str,
+    to: &str,
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
-) -> Result<()> {
-    for (k, v) in addresses_derivation_map {
-        println!("{}: {}", k, v.pos);
-    }
-
-    let mk = &addresses_derivation_map
-        .get("0x5ae2aade05b904130b91df23845a34ef26f80864")
-        .unwrap()
-        .mk;
-
+) -> Result<H256> {
+    let pos_mk = &addresses_derivation_map.get(from).unwrap();
+    let mk = &pos_mk.mk;
+    let pos = pos_mk.pos;
     let result = sign_and_send(
         "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
-        Address::from_str("0x27c388AF3a2DF6994599638f10A1Ac73c74afe78")?,
+        to,
         eth_value,
         client_shim,
         pos,
@@ -364,7 +367,7 @@ async fn send_eth(
         mk,
     )
     .await?;
-    Ok(())
+    Ok(result)
 }
 
 #[cfg(test)]
