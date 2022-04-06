@@ -34,7 +34,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
     let (kg_party_two_first_message, kg_ec_key_pair_party2) = MasterKey2::key_gen_first_message();
 
     let body = &kg_party_two_first_message.d_log_proof;
-    
+
     // Send ECDH key exchange message to P1 & receive the Paillier pubkey from P1
     let kg_party_one_second_message: party1::KeyGenParty1Message2 =
         match requests::postb(client_shim, &format!("{}/{}/second", KG_PATH_PRE, id), body)? {

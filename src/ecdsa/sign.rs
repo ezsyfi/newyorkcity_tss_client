@@ -32,7 +32,6 @@ pub fn sign(
     y_pos: BigInt,
     id: &str,
 ) -> Result<party_one::SignatureRecid> {
-
     // Choose ephemeral key
     let (eph_key_gen_first_message_party_two, eph_comm_witness, eph_ec_key_pair_party2) =
         MasterKey2::sign_first_message();
@@ -83,7 +82,9 @@ pub async fn a_sign(
 
     let request: party_two::EphKeyGenFirstMsg = eph_key_gen_first_message_party_two;
     let sign_party_one_first_message: party_one::EphKeyGenFirstMsg =
-        match a_requests::a_postb(client_shim, &format!("/ecdsa/sign/{}/first", id), &request).await? {
+        match a_requests::a_postb(client_shim, &format!("/ecdsa/sign/{}/first", id), &request)
+            .await?
+        {
             Some(s) => s,
             None => return Err(anyhow!("party1 sign first message request failed")),
         };
@@ -102,7 +103,9 @@ pub async fn a_sign(
         x_pos,
         y_pos,
         id,
-    ).await {
+    )
+    .await
+    {
         Ok(s) => s,
         Err(e) => return Err(anyhow!("ecdsa::get_signature failed failed: {}", e)),
     };
@@ -150,7 +153,9 @@ async fn a_get_signature(
     };
 
     let signature: party_one::SignatureRecid =
-        match a_requests::a_postb(client_shim, &format!("/ecdsa/sign/{}/second", id), &request).await? {
+        match a_requests::a_postb(client_shim, &format!("/ecdsa/sign/{}/second", id), &request)
+            .await?
+        {
             Some(s) => s,
             None => return Err(anyhow!("party1 sign second message request failed",)),
         };

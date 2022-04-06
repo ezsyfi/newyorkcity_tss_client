@@ -39,7 +39,11 @@ where
     base_postb(client_shim, path, body).await
 }
 
-pub async fn base_postb<T, V>(client_shim: &AsyncClientShim, path: &str, body: T) -> Result<Option<V>>
+pub async fn base_postb<T, V>(
+    client_shim: &AsyncClientShim,
+    path: &str,
+    body: T,
+) -> Result<Option<V>>
 where
     T: serde::ser::Serialize,
     V: serde::de::DeserializeOwned,
