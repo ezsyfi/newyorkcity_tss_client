@@ -1,5 +1,4 @@
 use anyhow::Result;
-use bitcoin::hashes::hex::ToHex;
 use bitcoin::{self};
 use curv::elliptic::curves::secp256_k1::GE;
 use curv::elliptic::curves::traits::ECPoint;
@@ -8,16 +7,19 @@ use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
 use serde_json::{self};
 use std::fs;
+use std::str::FromStr;
 use uuid::Uuid;
+use web3::types::{Address, H256};
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
-use crate::eth::utils::{
-    check_address_info, establish_web3_connection, get_balance_in_eth, to_eth_address,
-};
+use crate::eth;
+use crate::eth::raw_tx::sign_and_send;
+use crate::eth::utils::to_eth_address;
+use crate::utilities::a_requests::AsyncClientShim;
 use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
@@ -198,42 +200,61 @@ impl Wallet {
 
     pub fn send(
         &mut self,
-        to_address: String,
-        amount_btc: f32,
-        client_shim: &ClientShim,
-    ) -> Option<String> {
-        let raw_tx_opt = btc::raw_tx::create_raw_tx(
-            to_address,
-            amount_btc,
-            client_shim,
-            self.last_derived_pos,
-            &self.private_share,
-            &self.addresses_derivation_map,
-        );
+        from_address: &str,
+        to_address: &str,
+        amount: f64,
+        client_shim: &AsyncClientShim,
+    ) {
+        let coin_type = &self.coin_type;
+        if coin_type == "btc" {
+            // TODO: Update all ClientShim to use async reqwest
 
-        let raw_tx = match raw_tx_opt {
-            Ok(tx) => tx,
-            Err(_) => {
-                println!("Unable to create raw transaction");
-                return Some("".to_owned());
-            }
-        };
+            // let raw_tx_opt = btc::raw_tx::create_raw_tx(
+            //     to_address,
+            //     amount,
+            //     client_shim,
+            //     self.last_derived_pos,
+            //     &self.private_share,
+            //     &self.addresses_derivation_map,
+            // );
+            // let raw_tx = match raw_tx_opt {
+            //     Ok(tx) => tx,
+            //     Err(e) => {
+            //         panic!("Unable to create raw transaction {}", e);
+            //     }
+            // };
+            // let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
+            // let raw_tx = BlockCypherRawTx {
+            //     tx: raw_tx.unwrap().raw_tx_hex,
+            // };
+            // let tx_state = reqwest::blocking::Client::new()
+            //     .post(raw_tx_url)
+            //     .json(&raw_tx)
+            //     .send()
+            //     .unwrap()
+            //     .text()
+            //     .unwrap();
 
-        let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
-        let raw_tx = BlockCypherRawTx {
-            tx: raw_tx?.raw_tx_hex,
-        };
-        let res = reqwest::blocking::Client::new()
-            .post(raw_tx_url)
-            .json(&raw_tx)
-            .send()
-            .unwrap()
-            .text()
+            // println!(
+            //     "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
+            //     &self.network, amount, &to_address, tx_state
+            // );
+        } else if coin_type == "eth" {
+            let tx_hash = send_eth(
+                amount,
+                client_shim,
+                from_address,
+                to_address,
+                &self.private_share,
+                &self.addresses_derivation_map,
+            )
             .unwrap();
 
-        print!("{}", res);
-
-        Some(res)
+            println!(
+                "Sent {} ETH to address {}. Transaction State: {:?}",
+                amount, &to_address, tx_hash
+            );
+        }
     }
 
     pub fn get_crypto_address(&mut self) {
@@ -309,8 +330,44 @@ impl Wallet {
 
 #[tokio::main]
 async fn get_eth_balance(last_derived_pos: u32, private_share: &PrivateShare) -> Result<f64> {
-    let balance = check_address_info(last_derived_pos, private_share).await?;
-    Ok(balance)
+    let balance_l = eth::utils::get_all_addresses_balance(
+        "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
+        last_derived_pos,
+        private_share,
+    )
+    .await?;
+
+    let mut total = 0.0;
+    for b in balance_l {
+        total += b
+    }
+
+    Ok(total)
+}
+
+#[tokio::main]
+async fn send_eth(
+    eth_value: f64,
+    client_shim: &AsyncClientShim,
+    from: &str,
+    to: &str,
+    private_share: &PrivateShare,
+    addresses_derivation_map: &HashMap<String, MKPosDto>,
+) -> Result<H256> {
+    let pos_mk = &addresses_derivation_map.get(from).unwrap();
+    let mk = &pos_mk.mk;
+    let pos = pos_mk.pos;
+    let result = sign_and_send(
+        "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
+        to,
+        eth_value,
+        client_shim,
+        pos,
+        private_share,
+        mk,
+    )
+    .await?;
+    Ok(result)
 }
 
 #[cfg(test)]

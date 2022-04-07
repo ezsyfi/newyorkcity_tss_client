@@ -14,7 +14,6 @@ pub struct ClientShim {
 impl ClientShim {
     pub fn new(endpoint: String, auth_token: Option<String>, user_id: String) -> ClientShim {
         let client = reqwest::blocking::Client::builder()
-            // .connect_timeout(Some(Duration::new(1,0)))
             .timeout(Duration::new(u32::MAX.into(), 0))
             .build()
             .unwrap();

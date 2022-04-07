@@ -17,7 +17,6 @@ use crate::utilities::requests::ClientShim;
 use super::super::utilities::requests;
 use super::types::PrivateShare;
 
-// iOS bindings
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
@@ -25,7 +24,7 @@ const KG_PATH_PRE: &str = "ecdsa/keygen";
 
 pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
     let start = Instant::now();
-
+    // Receive ECDH key exchange message from P1
     let (id, kg_party_one_first_message): (String, party_one::KeyGenFirstMsg) =
         match requests::post(client_shim, &format!("{}/first", KG_PATH_PRE))? {
             Some(s) => s,
@@ -36,6 +35,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
 
     let body = &kg_party_two_first_message.d_log_proof;
 
+    // Send ECDH key exchange message to P1 & receive the Paillier pubkey from P1
     let kg_party_one_second_message: party1::KeyGenParty1Message2 =
         match requests::postb(client_shim, &format!("{}/{}/second", KG_PATH_PRE, id), body)? {
             Some(s) => s,
@@ -51,6 +51,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
         Err(_) => return Err(anyhow!("calculate paillier public failed")),
     };
 
+    // Receive non-interactive zk proof from P1
     let cc_party_one_first_message: Party1FirstMessage = match requests::post(
         client_shim,
         &format!("{}/{}/chaincode/first", KG_PATH_PRE, id),
@@ -64,6 +65,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
 
     let body = &cc_party_two_first_message.d_log_proof;
 
+    // Initiate 2-round zk proof with P1 & receive the decom proof from P1
     let cc_party_one_second_message: Party1SecondMessage<GE> = match requests::postb(
         client_shim,
         &format!("{}/{}/chaincode/second", KG_PATH_PRE, id),
@@ -86,6 +88,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
     )
     .chain_code;
 
+    // Verify zk proof, generate c_key & paillier pubkey of P1
     let master_key = MasterKey2::set_master_key(
         &party2_cc,
         &kg_ec_key_pair_party2,

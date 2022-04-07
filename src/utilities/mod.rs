@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
 
+pub mod a_requests;
 pub mod dto;
 pub mod err_handling;
 pub mod hd_wallet;

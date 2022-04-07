@@ -2,11 +2,10 @@
 
 #[macro_use]
 extern crate clap;
-use anyhow::Result;
 use clap::App;
 
 use client::escrow;
-use client::eth::utils::check_address_info;
+use client::utilities::a_requests::AsyncClientShim;
 use client::utilities::requests::ClientShim;
 use client::wallet;
 use floating_duration::TimeFormat;
@@ -30,6 +29,12 @@ fn main() {
     let endpoint = hm.get("endpoint").unwrap();
 
     let mut client_shim = ClientShim::new(
+        endpoint.to_string(),
+        Some("cli_token".to_owned()),
+        "cli_app".to_owned(),
+    );
+
+    let mut a_client_shim = AsyncClientShim::new(
         endpoint.to_string(),
         Some("cli_token".to_owned()),
         "cli_app".to_owned(),
@@ -115,24 +120,22 @@ fn main() {
             );
         } else if matches.is_present("send") {
             if let Some(matches) = matches.subcommand_matches("send") {
+                let from: &str = matches.value_of("from").unwrap();
                 let to: &str = matches.value_of("to").unwrap();
                 let amount_btc: &str = matches.value_of("amount").unwrap();
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
 
-                let tx_state = wallet
-                    .send(
-                        to.to_string(),
-                        amount_btc.to_string().parse::<f32>().unwrap(),
-                        &client_shim,
-                    )
-                    .unwrap();
-                wallet.save();
+                a_client_shim.auth_token = Some(token.to_owned());
 
-                println!(
-                    "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
-                    network, amount_btc, to, tx_state
+                wallet.send(
+                    from,
+                    to,
+                    amount_btc.to_string().parse::<f64>().unwrap(),
+                    &a_client_shim,
                 );
+
+                wallet.save();
             }
         }
     }
