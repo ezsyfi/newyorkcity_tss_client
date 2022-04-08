@@ -117,7 +117,7 @@ jobs:
               cargo lipo --release
               ;;
             *)
-              sudo apt update && sudo apt install linux-musl-dev musl-tools pkg-config libssl-dev
+              sudo apt-get install musl-tools libssl-dev
               rustup target add $TARGET
               cargo build --target $TARGET --lib --bin cli --release
               ;;
