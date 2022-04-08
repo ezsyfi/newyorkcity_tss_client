@@ -104,7 +104,7 @@ jobs:
               rustup target add $TARGET
               wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${TARGET}.zip
               unzip ${TARGET}.zip
-              mkdir $HOME/usr/local/$TARGET
+              mkdir -p $HOME/usr/local/$TARGET
               cp ${TARGET}/lib/libgmp.a $HOME/usr/local/$TARGET/
               RUSTFLAGS='-L $HOME/usr/local/$TARGET'
               cargo install cargo-ndk
@@ -115,7 +115,7 @@ jobs:
               GMP_TARGET=arm7a-linux-androidaebi
               wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${GMP_TARGET}.zip
               unzip ${GMP_TARGET}.zip
-              mkdir $HOME/usr/local/$TARGET
+              mkdir -p $HOME/usr/local/$TARGET
               cp ${GMP_TARGET}/lib/libgmp.a $HOME/usr/local/$TARGET/
 
               rustup target add $TARGET
