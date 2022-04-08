@@ -99,16 +99,31 @@ jobs:
         run: |
           TARGET=${{ matrix.triple.target }}
           case $TARGET in
-            "aarch64-linux-android")
+            "aarch64-linux-android" | "armv7-linux-androideabi")
               sudo apt-get install musl-tools libssl-dev
+              CURRENT=`pwd`
+              mkdir -p $HOME/usr/local
+              cd $HOME/usr/local
               rustup target add $TARGET
-              wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${TARGET}.zip
-              unzip ${TARGET}.zip
-              mkdir -p $HOME/usr/local/$TARGET
-              cp ${TARGET}/lib/libgmp.a $HOME/usr/local/$TARGET/
-              RUSTFLAGS='-L $HOME/usr/local/$TARGET'
+              if [ "$TARGET" == "armv7-linux-androideabi" ]
+              then
+                TARGET_SHORT_NAME=armeabi-v7a
+                GMP_TARGET="armv7a-linux-androideabi"
+                wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${GMP_TARGET}.zip
+                unzip ${GMP_TARGET}.zip
+                cd $CURRENT
+                mkdir -p target/${TARGET}/release/deps
+                cp -rf $HOME/usr/local/${GMP_TARGET}/lib/libgmp* target/${TARGET}/release/deps/
+              else
+                TARGET_SHORT_NAME=aarch64-linux-android
+                wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${TARGET}.zip
+                unzip ${TARGET}.zip
+                cd $CURRENT
+                mkdir -p target/${TARGET}/release/deps
+                cp -rf $HOME/usr/local/${TARGET}/lib/libgmp* target/${TARGET}/release/deps/
+              fi
               cargo install cargo-ndk
-              cargo ndk --target $TARGET build --lib --bin cli --release
+              cargo ndk --target $TARGET_SHORT_NAME build --lib --bin cli --release
               ;;
             "armv7-linux-androideabi")
               sudo apt-get install musl-tools libssl-dev
