@@ -100,7 +100,7 @@ jobs:
           TARGET=${{ matrix.triple.target }}
           case $TARGET in
             "aarch64-linux-android" | "armv7-linux-androideabi")
-              sudo apt update && sudo apt install linux-musl-dev musl-tools pkg-config libssl-dev
+              sudo apt update && sudo apt install musl-tools pkg-config libssl-dev
               rustup target add $TARGET
               RUSTFLAGS='-L $HOME/usr/local/$TARGET'
               cargo install cargo-ndk
