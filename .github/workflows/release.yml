@@ -122,6 +122,7 @@ jobs:
               cargo build --target $TARGET --lib --bin cli --release
               ;;
           esac
+          echo "See our release files"
           ls -la target/$TARGET/release
       - name: Upload binary to release
         uses: svenstaro/upload-release-action@v1-release
