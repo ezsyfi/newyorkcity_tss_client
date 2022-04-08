@@ -67,35 +67,13 @@ jobs:
               artifact_name: libclient.a,
               asset_name: libclient-universal-ios.a
             }
-          # x86_64 macOS, bin
-          - {
-              os: macos-latest,
-              target: x86_64-apple-darwin,
-              cross: false,
-              artifact_name: cli,
-              asset_name: cli-x86_64-apple-darwin
-            }
-          # x86_64 macOS, lib
-          - {
-              os: macos-latest,
-              target: "x86_64-apple-darwin",
-              cross: false,
-              artifact_name: libclient.a,
-              asset_name: libclient-x86_64-apple-darwin.a
-            }
-          # x86_64 macOS, dylib
-          - { 
-              os: macos-latest,
-              target: x86_64-apple-darwin,
-              cross: false,
-              artifact_name: libclient.dylib,
-              asset_name: libclient-x86_64-apple-darwin.dylib
-            }
+          # we can add in this too if we have time "x86_64-apple-darwin"
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build project
+        # we can add in this too if we have time "x86_64-apple-darwin"
         run: |
           TARGET=${{ matrix.triple.target }}
           case $TARGET in
@@ -125,25 +103,12 @@ jobs:
               cargo install cargo-ndk
               cargo ndk --target $TARGET_SHORT_NAME build --lib --bin cli --release
               ;;
-            "armv7-linux-androideabi")
-              sudo apt-get install musl-tools libssl-dev
-              GMP_TARGET=armv7a-linux-androideabi
-              wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${GMP_TARGET}.zip
-              unzip ${GMP_TARGET}.zip
-              mkdir -p $HOME/usr/local/$TARGET
-              cp ${GMP_TARGET}/lib/libgmp.a $HOME/usr/local/$TARGET/
-
-              rustup target add $TARGET
-              RUSTFLAGS='-L $HOME/usr/local/$TARGET'
-              cargo install cargo-ndk
-              cargo ndk --target $TARGET build --lib --bin cli --release
-              ;;
             "aarch64-apple-ios" | "x86_64-apple-ios")
               rustup target add $TARGET
               cargo install cargo-lipo
               cargo lipo --targets $TARGET --release
               ;;
-            "universal" | "x86_64-apple-darwin")
+            "universal")
               rustup target add aarch64-apple-ios x86_64-apple-ios
               cargo install cargo-lipo
               cargo lipo --release
