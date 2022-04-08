@@ -99,8 +99,25 @@ jobs:
         run: |
           TARGET=${{ matrix.triple.target }}
           case $TARGET in
-            "aarch64-linux-android" | "armv7-linux-androideabi")
+            "aarch64-linux-android")
               sudo apt-get install musl-tools libssl-dev
+              rustup target add $TARGET
+              wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${TARGET}.zip
+              unzip ${TARGET}.zip
+              mkdir $HOME/usr/local/$TARGET
+              cp ${TARGET}/lib/libgmp.a $HOME/usr/local/$TARGET/
+              RUSTFLAGS='-L $HOME/usr/local/$TARGET'
+              cargo install cargo-ndk
+              cargo ndk --target $TARGET build --lib --bin cli --release
+              ;;
+            "armv7-linux-androideabi")
+              sudo apt-get install musl-tools libssl-dev
+              GMP_TARGET=arm7a-linux-androidaebi
+              wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${GMP_TARGET}.zip
+              unzip ${GMP_TARGET}.zip
+              mkdir $HOME/usr/local/$TARGET
+              cp ${GMP_TARGET}/lib/libgmp.a $HOME/usr/local/$TARGET/
+
               rustup target add $TARGET
               RUSTFLAGS='-L $HOME/usr/local/$TARGET'
               cargo install cargo-ndk
