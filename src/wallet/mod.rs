@@ -7,9 +7,8 @@ use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
 use serde_json::{self};
 use std::fs;
-use std::str::FromStr;
 use uuid::Uuid;
-use web3::types::{Address, H256};
+use web3::types::H256;
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
@@ -20,7 +19,7 @@ use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::to_eth_address;
 use crate::utilities::a_requests::AsyncClientShim;
-use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
+use crate::utilities::dto::{MKPosDto, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
 
@@ -35,7 +34,6 @@ use std::collections::HashMap;
 // TODO: move that to a config file and double check electrum server addresses
 const WALLET_FILENAME: &str = "wallet/wallet.json";
 const BACKUP_FILENAME: &str = "wallet/backup.data";
-const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
 
 #[derive(Serialize, Deserialize)]
 pub struct Wallet {
@@ -207,9 +205,8 @@ impl Wallet {
     ) {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
-            // TODO: Update all ClientShim to use async reqwest
-
             // let raw_tx_opt = btc::raw_tx::create_raw_tx(
+            //     from_address,
             //     to_address,
             //     amount,
             //     client_shim,
@@ -354,11 +351,10 @@ async fn send_eth(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
-    let pos_mk = &addresses_derivation_map.get(from).unwrap();
+    let pos_mk = &addresses_derivation_map.get(from.to_lowercase().as_str()).unwrap();
     let mk = &pos_mk.mk;
     let pos = pos_mk.pos;
     let result = sign_and_send(
-        "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
         to,
         eth_value,
         client_shim,

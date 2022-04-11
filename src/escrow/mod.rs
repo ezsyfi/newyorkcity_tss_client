@@ -22,7 +22,7 @@ impl Escrow {
         let public: GE = g * &secret;
         fs::write(
             ESCROW_SK_FILENAME,
-            serde_json::to_string(&(secret.clone(), public.clone())).unwrap(),
+            serde_json::to_string(&(secret, public)).unwrap(),
         )
         .expect("Unable to save escrow secret!");
 
@@ -33,16 +33,16 @@ impl Escrow {
         let sec_data = fs::read_to_string(ESCROW_SK_FILENAME).expect("Unable to load wallet!");
         let (secret, public): (FE, GE) = serde_json::from_str(&sec_data).unwrap();
         Escrow {
-            secret: secret.clone(),
-            public: public.clone(),
+            secret,
+            public,
         }
     }
 
     pub fn get_public_key(&self) -> GE {
-        self.public.clone()
+        self.public
     }
 
     pub fn get_private_key(&self) -> FE {
-        self.secret.clone()
+        self.secret
     }
 }
