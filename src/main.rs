@@ -126,13 +126,13 @@ fn main() {
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
 
-                a_client_shim.auth_token = Some(token.to_owned());
+                // a_client_shim.auth_token = Some(token.to_owned());
 
                 wallet.send(
                     from,
                     to,
                     amount_btc.to_string().parse::<f64>().unwrap(),
-                    &a_client_shim,
+                    &client_shim,
                 );
 
                 wallet.save();

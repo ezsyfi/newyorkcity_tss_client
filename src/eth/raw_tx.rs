@@ -1,11 +1,12 @@
 use std::str::FromStr;
 
-use crate::ecdsa::sign::a_sign;
+use crate::ecdsa::sign::{self, sign};
 use crate::ecdsa::PrivateShare;
 use crate::eth::transaction::Transaction;
 use crate::eth::utils::to_eth_address;
 use crate::utilities::a_requests::{self, AsyncClientShim};
 use crate::utilities::dto::{EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp};
+use crate::utilities::requests::{self, ClientShim};
 
 use anyhow::{anyhow, Result};
 use curv::arithmetic::traits::Converter;
@@ -16,10 +17,10 @@ use web3::types::{Address, H256};
 use web3::{self, signing::Signature};
 
 #[allow(clippy::too_many_arguments)]
-pub async fn sign_and_send(
+pub fn sign_and_send(
     to: &str,
     eth_value: f64,
-    client_shim: &AsyncClientShim,
+    client_shim: &ClientShim,
     pos: u32,
     private_share: &PrivateShare,
     mk: &MasterKey2,
@@ -34,7 +35,7 @@ pub async fn sign_and_send(
     };
 
     let tx_params: EthTxParamsResp =
-        match a_requests::a_postb(client_shim, "eth/tx/params", tx_params_body).await? {
+        match requests::postb(client_shim, "eth/tx/params", tx_params_body)? {
             Some(s) => s,
             None => return Err(anyhow!("get ETH tx params request failed")),
         };
@@ -55,15 +56,14 @@ pub async fn sign_and_send(
     let chain_id = tx_params.chain_id;
     let msg = tx.get_hash(chain_id);
 
-    let sig = a_sign(
+    let sig = sign(
         client_shim,
         BigInt::from_hex(&hex::encode(&msg[..])).unwrap(),
         mk,
         BigInt::from(0),
         BigInt::from(pos),
         &private_share.id,
-    )
-    .await?;
+    )?;
 
     let r = H256::from_slice(&BigInt::to_bytes(&sig.r));
     let s = H256::from_slice(&BigInt::to_bytes(&sig.s));
@@ -76,7 +76,7 @@ pub async fn sign_and_send(
     };
 
     let transaction_result: EthSendTxResp =
-        match a_requests::a_postb(client_shim, "eth/tx/send", tx_send_body).await? {
+        match requests::postb(client_shim, "eth/tx/send", tx_send_body)? {
             Some(s) => s,
             None => return Err(anyhow!("send ETH tx request failed")),
         };
