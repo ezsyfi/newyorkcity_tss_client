@@ -5,7 +5,7 @@ use crate::ecdsa::PrivateShare;
 use crate::eth::transaction::Transaction;
 use crate::eth::utils::to_eth_address;
 use crate::utilities::a_requests::{self, AsyncClientShim};
-use crate::utilities::dto::{EthTxParamsReqBody, EthTxParamsResp, EthSendTxReqBody, EthSendTxResp};
+use crate::utilities::dto::{EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp};
 
 use anyhow::{anyhow, Result};
 use curv::arithmetic::traits::Converter;

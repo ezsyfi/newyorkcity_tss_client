@@ -32,10 +32,7 @@ impl Escrow {
     pub fn load() -> Escrow {
         let sec_data = fs::read_to_string(ESCROW_SK_FILENAME).expect("Unable to load wallet!");
         let (secret, public): (FE, GE) = serde_json::from_str(&sec_data).unwrap();
-        Escrow {
-            secret,
-            public,
-        }
+        Escrow { secret, public }
     }
 
     pub fn get_public_key(&self) -> GE {

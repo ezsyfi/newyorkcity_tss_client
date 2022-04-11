@@ -351,18 +351,12 @@ async fn send_eth(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
-    let pos_mk = &addresses_derivation_map.get(from.to_lowercase().as_str()).unwrap();
+    let pos_mk = &addresses_derivation_map
+        .get(from.to_lowercase().as_str())
+        .unwrap();
     let mk = &pos_mk.mk;
     let pos = pos_mk.pos;
-    let result = sign_and_send(
-        to,
-        eth_value,
-        client_shim,
-        pos,
-        private_share,
-        mk,
-    )
-    .await?;
+    let result = sign_and_send(to, eth_value, client_shim, pos, private_share, mk).await?;
     Ok(result)
 }
 

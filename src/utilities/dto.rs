@@ -1,7 +1,7 @@
 use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
-use web3::types::{Address, U256, U64, AccessList, H256, Bytes};
+use web3::types::{AccessList, Address, Bytes, H256, U256, U64};
 
 #[derive(Serialize, Deserialize)]
 pub struct SignSecondMsgRequest {
@@ -79,7 +79,7 @@ pub struct BlockCypherRawTx {
 pub struct EthTxParamsReqBody {
     pub from_address: Address,
     pub to_address: Address,
-    pub eth_value: f64
+    pub eth_value: f64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -93,7 +93,7 @@ pub struct EthTxParamsResp {
     pub transaction_type: Option<U64>,
     pub access_list: AccessList,
     pub max_priority_fee_per_gas: U256,
-    pub chain_id: u64
+    pub chain_id: u64,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
