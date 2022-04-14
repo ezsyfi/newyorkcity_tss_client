@@ -91,7 +91,7 @@ pub fn create_raw_tx(
         amount_satoshi, total_selected
     );
 
-    let to_btc_adress = bitcoin::Address::from_str(&to_address)?;
+    let to_btc_adress = bitcoin::Address::from_str(to_address)?;
     let txs_out = vec![
         TxOut {
             value: amount_satoshi,

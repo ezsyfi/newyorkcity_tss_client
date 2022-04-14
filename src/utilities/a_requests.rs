@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use floating_duration::TimeFormat;
 
 #[derive(Debug)]
@@ -61,11 +61,4 @@ where
     let res = b.json(&body).send().await?;
     info!("(req {}, took: {})", path, TimeFormat(start.elapsed()));
     Ok(Some(res.json::<V>().await?))
-
-    // let value = match res {
-    //     Ok(v) => v.text()?,
-    //     Err(e) => return Err(anyhow!("HTTP POST with auth token failed: {}", e)),
-    // };
-
-    // Ok(Some(serde_json::from_str(value.as_str())?))
 }

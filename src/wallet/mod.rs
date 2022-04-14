@@ -7,9 +7,8 @@ use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
 use serde_json::{self};
 use std::fs;
-use std::str::FromStr;
 use uuid::Uuid;
-use web3::types::{Address, H256};
+use web3::types::H256;
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
@@ -19,7 +18,6 @@ use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_publ
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::to_eth_address;
-use crate::utilities::a_requests::AsyncClientShim;
 use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
@@ -36,7 +34,6 @@ use std::collections::HashMap;
 const WALLET_FILENAME: &str = "wallet/wallet.json";
 const BACKUP_FILENAME: &str = "wallet/backup.data";
 const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
-
 #[derive(Serialize, Deserialize)]
 pub struct Wallet {
     pub id: String,
@@ -203,42 +200,40 @@ impl Wallet {
         from_address: &str,
         to_address: &str,
         amount: f64,
-        client_shim: &AsyncClientShim,
+        client_shim: &ClientShim,
     ) {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
-            // TODO: Update all ClientShim to use async reqwest
+            let raw_tx_opt = btc::raw_tx::create_raw_tx(
+                to_address,
+                amount,
+                client_shim,
+                self.last_derived_pos,
+                &self.private_share,
+                &self.addresses_derivation_map,
+            );
+            let raw_tx = match raw_tx_opt {
+                Ok(tx) => tx,
+                Err(e) => {
+                    panic!("Unable to create raw transaction {}", e);
+                }
+            };
+            let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
+            let raw_tx = BlockCypherRawTx {
+                tx: raw_tx.unwrap().raw_tx_hex,
+            };
+            let tx_state = reqwest::blocking::Client::new()
+                .post(raw_tx_url)
+                .json(&raw_tx)
+                .send()
+                .unwrap()
+                .text()
+                .unwrap();
 
-            // let raw_tx_opt = btc::raw_tx::create_raw_tx(
-            //     to_address,
-            //     amount,
-            //     client_shim,
-            //     self.last_derived_pos,
-            //     &self.private_share,
-            //     &self.addresses_derivation_map,
-            // );
-            // let raw_tx = match raw_tx_opt {
-            //     Ok(tx) => tx,
-            //     Err(e) => {
-            //         panic!("Unable to create raw transaction {}", e);
-            //     }
-            // };
-            // let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
-            // let raw_tx = BlockCypherRawTx {
-            //     tx: raw_tx.unwrap().raw_tx_hex,
-            // };
-            // let tx_state = reqwest::blocking::Client::new()
-            //     .post(raw_tx_url)
-            //     .json(&raw_tx)
-            //     .send()
-            //     .unwrap()
-            //     .text()
-            //     .unwrap();
-
-            // println!(
-            //     "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
-            //     &self.network, amount, &to_address, tx_state
-            // );
+            println!(
+                "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
+                &self.network, amount, &to_address, tx_state
+            );
         } else if coin_type == "eth" {
             let tx_hash = send_eth(
                 amount,
@@ -345,28 +340,20 @@ async fn get_eth_balance(last_derived_pos: u32, private_share: &PrivateShare) ->
     Ok(total)
 }
 
-#[tokio::main]
-async fn send_eth(
+fn send_eth(
     eth_value: f64,
-    client_shim: &AsyncClientShim,
+    client_shim: &ClientShim,
     from: &str,
     to: &str,
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
-    let pos_mk = &addresses_derivation_map.get(from).unwrap();
+    let pos_mk = &addresses_derivation_map
+        .get(from.to_lowercase().as_str())
+        .unwrap();
     let mk = &pos_mk.mk;
     let pos = pos_mk.pos;
-    let result = sign_and_send(
-        "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
-        to,
-        eth_value,
-        client_shim,
-        pos,
-        private_share,
-        mk,
-    )
-    .await?;
+    let result = sign_and_send(to, eth_value, client_shim, pos, private_share, mk)?;
     Ok(result)
 }
 
