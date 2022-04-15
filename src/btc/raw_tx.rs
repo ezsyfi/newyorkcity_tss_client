@@ -3,6 +3,9 @@ use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_
 use crate::ecdsa::{sign, PrivateShare};
 use crate::utilities::dto::{MKPosAddressDto, MKPosDto, UtxoAggregator};
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
+use crate::utilities::ffi::ffi_utils::{
+    get_addresses_derivation_map_from_raw, get_client_shim_from_raw, get_private_share_from_raw,
+};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
 
@@ -113,8 +116,8 @@ pub fn create_raw_tx(
     let mut signed_transaction = transaction.clone();
 
     /* Signing transaction */
-    for i in 0..transaction.input.len() {
-        let address_derivation = match addresses_derivation_map.get(&selected[i].address) {
+    for (i, txi) in selected.iter().enumerate().take(transaction.input.len()) {
+        let address_derivation = match addresses_derivation_map.get(&txi.address) {
             Some(s) => s,
             None => {
                 return Err(anyhow!(
@@ -134,7 +137,7 @@ pub fn create_raw_tx(
                 get_bitcoin_network(BTC_TESTNET)?,
             )
             .script_pubkey(),
-            (selected[i].value as u32).into(),
+            (txi.value as u32).into(),
             SigHashType::All,
         );
 
@@ -208,39 +211,6 @@ pub extern "C" fn get_raw_btc_tx(
     c_private_share_json: *const c_char,
     c_addresses_derivation_map: *const c_char,
 ) -> *mut c_char {
-    let raw_endpoint_json = unsafe { CStr::from_ptr(c_endpoint) };
-    let endpoint = match raw_endpoint_json.to_str() {
-        Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "endpoint".to_owned(),
-                e: e.to_string(),
-            })
-        }
-    };
-
-    let raw_auth_token_json = unsafe { CStr::from_ptr(c_auth_token) };
-    let auth_token = match raw_auth_token_json.to_str() {
-        Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "auth_token".to_owned(),
-                e: e.to_string(),
-            })
-        }
-    };
-
-    let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
-    let user_id = match user_id_json.to_str() {
-        Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "user_id".to_owned(),
-                e: e.to_string(),
-            })
-        }
-    };
-
     let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
     let to_address = match raw_to_address.to_str() {
         Ok(s) => s,
@@ -252,17 +222,17 @@ pub extern "C" fn get_raw_btc_tx(
         }
     };
 
-    let raw_private_share_json = unsafe { CStr::from_ptr(c_private_share_json) };
-    let private_share_json = match raw_private_share_json.to_str() {
+    let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
         Ok(s) => s,
         Err(e) => {
             return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "private_share".to_owned(),
+                msg: "client_shim".to_owned(),
                 e: e.to_string(),
             })
         }
     };
-    let private_share: PrivateShare = match serde_json::from_str(private_share_json) {
+
+    let private_share = match get_private_share_from_raw(c_private_share_json) {
         Ok(s) => s,
         Err(e) => {
             return error_to_c_string(ErrorFFIKind::E104 {
@@ -272,18 +242,8 @@ pub extern "C" fn get_raw_btc_tx(
         }
     };
 
-    let raw_addresses_derivation_map_json = unsafe { CStr::from_ptr(c_addresses_derivation_map) };
-    let addresses_derivation_map_json = match raw_addresses_derivation_map_json.to_str() {
-        Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "addresses_derivation_map".to_owned(),
-                e: e.to_string(),
-            })
-        }
-    };
-    let addresses_derivation_map: HashMap<String, MKPosDto> =
-        match serde_json::from_str(addresses_derivation_map_json) {
+    let addresses_derivation_map =
+        match get_addresses_derivation_map_from_raw(c_addresses_derivation_map) {
             Ok(s) => s,
             Err(e) => {
                 return error_to_c_string(ErrorFFIKind::E104 {
@@ -292,12 +252,6 @@ pub extern "C" fn get_raw_btc_tx(
                 })
             }
         };
-
-    let client_shim = ClientShim::new(
-        endpoint.to_owned(),
-        Some(auth_token.to_owned()),
-        user_id.to_owned(),
-    );
 
     let raw_tx_opt = match create_raw_tx(
         to_address,
