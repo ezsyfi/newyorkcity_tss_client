@@ -8,8 +8,8 @@ use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 
 use crate::ecdsa::PrivateShare;
+use crate::utilities::derive_new_key;
 use crate::utilities::dto::{BlockCypherAddress, BtcBalanceAggregator, UtxoAggregator};
-use crate::utilities::hd_wallet::derive_new_key;
 
 pub const BTC_TESTNET: &str = "testnet";
 pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
@@ -108,71 +108,4 @@ pub fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
 pub fn get_bitcoin_network(nw: &str) -> Result<Network> {
     let btc_nw = nw.to_owned().parse::<Network>()?;
     Ok(btc_nw)
-}
-
-pub fn get_test_private_share() -> PrivateShare {
-    const PRIVATE_SHARE_FILENAME: &str = "test-assets/private_share.json";
-    let data =
-        fs::read_to_string(PRIVATE_SHARE_FILENAME).expect("Unable to load test private_share!");
-    serde_json::from_str(&data).unwrap()
-}
-#[cfg(test)]
-mod tests {
-    use crate::{
-        btc::utils::{get_new_address, get_test_private_share, BTC_TESTNET},
-        ecdsa::PrivateShare,
-        utilities::hd_wallet::derive_new_key,
-    };
-    use anyhow::Result;
-    use bitcoin::Network;
-    use curv::elliptic::curves::traits::ECPoint;
-
-    #[test]
-    fn test_get_bitcoin_network() -> Result<()> {
-        let network = super::get_bitcoin_network(BTC_TESTNET)?;
-        assert_eq!(network, Network::Testnet);
-        Ok(())
-    }
-
-    #[test]
-    fn test_derive_new_key() {
-        let private_share: PrivateShare = get_test_private_share();
-        let (pos, mk) = derive_new_key(&private_share, 0);
-        let pk = mk.public.q.get_element();
-        assert!(!pk.to_string().is_empty());
-        assert_eq!(pos, 1);
-    }
-
-    #[test]
-    fn test_get_new_bitcoin_address() -> Result<()> {
-        let private_share: PrivateShare = get_test_private_share();
-        let addrs = get_new_address(&private_share, 0)?;
-        let exp = "tb1qxyjt450heqv4ql8k7rp2qfmd4vrmncaquzw37r".to_string();
-        assert_eq!(addrs.to_string(), exp);
-        Ok(())
-    }
-
-    #[test]
-    fn test_get_all_addresses() -> Result<()> {
-        let private_share: PrivateShare = get_test_private_share();
-        let address_list = super::get_all_addresses(0, &private_share)?;
-        assert!(!address_list.is_empty());
-        Ok(())
-    }
-
-    #[test]
-    fn test_get_all_addresses_balance() -> Result<()> {
-        let private_share: PrivateShare = get_test_private_share();
-        let address_balance_list = super::get_all_addresses_balance(0, &private_share)?;
-        assert!(!address_balance_list.is_empty());
-
-        let address_balance = address_balance_list.get(0).unwrap();
-        assert_eq!(address_balance.confirmed, 0);
-        assert_eq!(address_balance.unconfirmed, 0);
-        assert_eq!(
-            address_balance.address,
-            "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5"
-        );
-        Ok(())
-    }
 }

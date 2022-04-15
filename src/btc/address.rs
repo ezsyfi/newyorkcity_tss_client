@@ -2,7 +2,7 @@
 use crate::ecdsa::PrivateShare;
 use crate::utilities::dto::MKPosAddressDto;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
-use crate::utilities::hd_wallet::derive_new_key;
+use crate::utilities::derive_new_key;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 

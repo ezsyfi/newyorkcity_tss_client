@@ -1,7 +1,7 @@
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub mod ffi_utils {
     use anyhow::{anyhow, Result};
-    use std::{collections::HashMap, ffi::CStr, os::raw::c_char};
+    use std::{collections::HashMap, ffi::{CStr, CString}, os::raw::c_char};
 
     use crate::{
         ecdsa::PrivateShare,
@@ -80,5 +80,13 @@ pub mod ffi_utils {
             };
 
         Ok(addresses_derivation_map)
+    }
+
+    #[no_mangle]
+    pub extern "C" fn cstring_free(cstring: *mut c_char) {
+        if cstring.is_null() {
+            return;
+        }
+        unsafe { CString::from_raw(cstring) };
     }
 }

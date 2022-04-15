@@ -7,8 +7,7 @@ use crate::{
     ecdsa::PrivateShare,
     utilities::{
         dto::MKPosAddressDto,
-        err_handling::{error_to_c_string, ErrorFFIKind},
-        hd_wallet::derive_new_key,
+        err_handling::{error_to_c_string, ErrorFFIKind}, derive_new_key,
     },
 };
 
