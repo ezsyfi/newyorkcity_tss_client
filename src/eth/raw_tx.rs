@@ -1,30 +1,42 @@
+use std::collections::HashMap;
 use std::str::FromStr;
 
-use crate::ecdsa::sign::{self, sign};
+use crate::ecdsa::sign::sign;
 use crate::ecdsa::PrivateShare;
 use crate::eth::transaction::Transaction;
 use crate::eth::utils::to_eth_address;
-use crate::utilities::a_requests::{self, AsyncClientShim};
-use crate::utilities::dto::{EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp};
+use crate::utilities::dto::{
+    EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp, MKPosDto,
+};
+use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
+use crate::utilities::ffi::ffi_utils::{
+    get_addresses_derivation_map_from_raw, get_client_shim_from_raw, get_private_share_from_raw,
+};
 use crate::utilities::requests::{self, ClientShim};
 
 use anyhow::{anyhow, Result};
 use curv::arithmetic::traits::Converter;
 use curv::BigInt;
 use hex;
-use kms::ecdsa::two_party::MasterKey2;
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
 use web3::types::{Address, H256};
 use web3::{self, signing::Signature};
 
-#[allow(clippy::too_many_arguments)]
 pub fn sign_and_send(
+    from: &str,
     to: &str,
     eth_value: f64,
     client_shim: &ClientShim,
-    pos: u32,
     private_share: &PrivateShare,
-    mk: &MasterKey2,
+    addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
+    let pos_mk = &addresses_derivation_map
+        .get(from.to_lowercase().as_str())
+        .unwrap();
+    let mk = &pos_mk.mk;
+    let pos = pos_mk.pos;
+
     let to_address = Address::from_str(to)?;
     let from_address = to_eth_address(mk);
 
@@ -39,8 +51,6 @@ pub fn sign_and_send(
             Some(s) => s,
             None => return Err(anyhow!("get ETH tx params request failed")),
         };
-
-    println!("{:#?}", tx_params);
 
     let tx = Transaction {
         to: tx_params.to,
@@ -82,4 +92,105 @@ pub fn sign_and_send(
         };
 
     Ok(transaction_result.tx_hash)
+}
+
+#[no_mangle]
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
+pub extern "C" fn get_raw_eth_tx(
+    c_endpoint: *const c_char,
+    c_auth_token: *const c_char,
+    c_user_id: *const c_char,
+    c_from_address: *const c_char,
+    c_to_address: *const c_char,
+    c_amount_eth: f64,
+    c_private_share_json: *const c_char,
+    c_addresses_derivation_map: *const c_char,
+) -> *mut c_char {
+    let raw_from_address = unsafe { CStr::from_ptr(c_from_address) };
+    let from_address = match raw_from_address.to_str() {
+        Ok(s) => s,
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "from_address".to_owned(),
+                e: e.to_string(),
+            })
+        }
+    };
+
+    let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
+    let to_address = match raw_to_address.to_str() {
+        Ok(s) => s,
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "to_address".to_owned(),
+                e: e.to_string(),
+            })
+        }
+    };
+
+    let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
+        Ok(s) => s,
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E100 {
+                msg: "client_shim".to_owned(),
+                e: e.to_string(),
+            })
+        }
+    };
+
+    let private_share = match get_private_share_from_raw(c_private_share_json) {
+        Ok(s) => s,
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E104 {
+                msg: "private_share".to_owned(),
+                e: e.to_string(),
+            })
+        }
+    };
+
+    let addresses_derivation_map =
+        match get_addresses_derivation_map_from_raw(c_addresses_derivation_map) {
+            Ok(s) => s,
+            Err(e) => {
+                return error_to_c_string(ErrorFFIKind::E104 {
+                    msg: "addresses_derivation_map".to_owned(),
+                    e: e.to_string(),
+                })
+            }
+        };
+
+    let tx_hash = match sign_and_send(
+        from_address,
+        to_address,
+        c_amount_eth,
+        &client_shim,
+        &private_share,
+        &addresses_derivation_map,
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E103 {
+                msg: "tx_hash".to_owned(),
+                e: e.to_string(),
+            })
+        }
+    };
+
+    let tx_hash_json = match serde_json::to_string(&tx_hash) {
+        Ok(tx_resp) => tx_resp,
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E102 {
+                msg: "tx_hash".to_owned(),
+                e: e.to_string(),
+            })
+        }
+    };
+
+    match CString::new(tx_hash_json) {
+        Ok(s) => s.into_raw(),
+        Err(e) => error_to_c_string(ErrorFFIKind::E101 {
+            msg: "tx_hash".to_owned(),
+            e: e.to_string(),
+        }),
+    }
 }

@@ -4,6 +4,7 @@ use std::os::raw::c_char;
 pub mod a_requests;
 pub mod dto;
 pub mod err_handling;
+pub mod ffi;
 pub mod hd_wallet;
 pub mod requests;
 

@@ -348,12 +348,14 @@ fn send_eth(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
-    let pos_mk = &addresses_derivation_map
-        .get(from.to_lowercase().as_str())
-        .unwrap();
-    let mk = &pos_mk.mk;
-    let pos = pos_mk.pos;
-    let result = sign_and_send(to, eth_value, client_shim, pos, private_share, mk)?;
+    let result = sign_and_send(
+        from,
+        to,
+        eth_value,
+        client_shim,
+        private_share,
+        addresses_derivation_map,
+    )?;
     Ok(result)
 }
 

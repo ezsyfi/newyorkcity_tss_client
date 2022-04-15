@@ -40,7 +40,7 @@ pub extern "C" fn get_eth_addrs(
         Ok(addrs_resp) => addrs_resp,
         Err(e) => {
             return error_to_c_string(ErrorFFIKind::E102 {
-                msg: "MKPosAddressDTO".to_owned(),
+                msg: "mk_pos_address".to_owned(),
                 e: e.to_string(),
             })
         }
@@ -49,7 +49,7 @@ pub extern "C" fn get_eth_addrs(
     match CString::new(mk_pos_address_json) {
         Ok(s) => s.into_raw(),
         Err(e) => error_to_c_string(ErrorFFIKind::E101 {
-            msg: "mk,pos,address dto".to_owned(),
+            msg: "mk_pos_address".to_owned(),
             e: e.to_string(),
         }),
     }

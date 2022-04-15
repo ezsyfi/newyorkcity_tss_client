@@ -5,7 +5,6 @@ extern crate clap;
 use clap::App;
 
 use client::escrow;
-use client::utilities::a_requests::AsyncClientShim;
 use client::utilities::requests::ClientShim;
 use client::wallet;
 use floating_duration::TimeFormat;
@@ -34,11 +33,12 @@ fn main() {
         "cli_app".to_owned(),
     );
 
-    let mut a_client_shim = AsyncClientShim::new(
-        endpoint.to_string(),
-        Some("cli_token".to_owned()),
-        "cli_app".to_owned(),
-    );
+    // For async tests
+    // let mut a_client_shim = AsyncClientShim::new(
+    //     endpoint.to_string(),
+    //     Some("cli_token".to_owned()),
+    //     "cli_app".to_owned(),
+    // );
 
     let network = "testnet".to_string();
     if let Some(matches) = matches.subcommand_matches("create-wallet") {
