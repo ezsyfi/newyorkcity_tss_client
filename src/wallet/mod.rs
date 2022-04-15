@@ -17,7 +17,7 @@ use kms::chain_code::two_party::party2::ChainCode2;
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
-use crate::eth::utils::to_eth_address;
+use crate::eth::utils::pubkey_to_eth_address;
 use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
@@ -263,7 +263,7 @@ impl Wallet {
 
             println!("BTC Network: [{}], Address: [{}]", &self.network, address);
         } else if coin_type == "eth" {
-            let address = to_eth_address(&mk);
+            let address = pubkey_to_eth_address(&mk);
             self.addresses_derivation_map
                 .insert(format!("{:?}", address), MKPosDto { mk, pos });
             self.last_derived_pos = pos;

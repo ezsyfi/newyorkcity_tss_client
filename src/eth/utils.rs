@@ -43,14 +43,14 @@ pub fn get_all_addresses(
             .master_key
             .get_child(vec![BigInt::from(0), BigInt::from(n)]);
 
-        let eth_address = to_eth_address(&mk);
+        let eth_address = pubkey_to_eth_address(&mk);
         response.push(eth_address);
     }
 
     Ok(response)
 }
 
-pub fn to_eth_address(mk: &MasterKey2) -> Address {
+pub fn pubkey_to_eth_address(mk: &MasterKey2) -> Address {
     let pub_k = mk.public.q.get_element().serialize_uncompressed();
     let hash = keccak256(&pub_k[1..]);
     Address::from_slice(&hash[12..])
