@@ -1,12 +1,12 @@
 use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
 use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_key};
 use crate::ecdsa::{sign, PrivateShare};
+use crate::utilities::derive_new_key;
 use crate::utilities::dto::{MKPosAddressDto, MKPosDto, UtxoAggregator};
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::ffi::ffi_utils::{
     get_addresses_derivation_map_from_raw, get_client_shim_from_raw, get_private_share_from_raw,
 };
-use crate::utilities::derive_new_key;
 use crate::utilities::requests::ClientShim;
 
 use anyhow::{anyhow, Result};
@@ -293,5 +293,3 @@ pub extern "C" fn get_raw_btc_tx(
         }),
     }
 }
-
-

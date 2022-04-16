@@ -6,8 +6,9 @@ use std::{
 use crate::{
     ecdsa::PrivateShare,
     utilities::{
+        derive_new_key,
         dto::MKPosAddressDto,
-        err_handling::{error_to_c_string, ErrorFFIKind}, derive_new_key,
+        err_handling::{error_to_c_string, ErrorFFIKind},
     },
 };
 

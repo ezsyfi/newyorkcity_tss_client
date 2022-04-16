@@ -18,9 +18,10 @@ use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_publ
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::pubkey_to_eth_address;
-use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::derive_new_key;
+use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
 use crate::utilities::requests::ClientShim;
+use crate::utilities::tests::RINKEBY_TEST_API;
 
 use super::btc;
 
@@ -328,12 +329,9 @@ impl Wallet {
 
 #[tokio::main]
 async fn get_eth_balance(last_derived_pos: u32, private_share: &PrivateShare) -> Result<f64> {
-    let balance_l = eth::utils::get_all_addresses_balance(
-        "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
-        last_derived_pos,
-        private_share,
-    )
-    .await?;
+    let balance_l =
+        eth::utils::get_all_addresses_balance(RINKEBY_TEST_API, last_derived_pos, private_share)
+            .await?;
 
     let mut total = 0.0;
     for b in balance_l {

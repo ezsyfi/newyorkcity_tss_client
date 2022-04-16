@@ -2,8 +2,8 @@ pub mod a_requests;
 pub mod dto;
 pub mod err_handling;
 pub mod ffi;
-pub mod hd_wallet;
 pub mod requests;
+pub mod tests;
 
 use crate::ecdsa::PrivateShare;
 use curv::BigInt;
