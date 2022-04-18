@@ -48,4 +48,9 @@ case $TARGET in
 esac
 
 cd target/$TARGET/release
-zip -r /tmp/${{ matrix.triple.artifact_name }} .
+if [ "$TARGET" == "universal" ]
+then
+    zip -r /tmp/$TARGET-ios.zip .
+else
+    zip -r /tmp/$TARGET.zip .
+fi
