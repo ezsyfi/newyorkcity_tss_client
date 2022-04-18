@@ -126,7 +126,7 @@ jobs:
               cargo build --target $TARGET --lib --bin cli --release
               ;;
           esac
-          echo "See our release files"
+          echo "Check release"
           ls -la target/$TARGET/release
           cd target/$TARGET/release
           zip -r /tmp/${{ matrix.triple.artifact_name }} .
