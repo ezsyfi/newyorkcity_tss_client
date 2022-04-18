@@ -84,7 +84,7 @@ jobs:
         run: |
           TARGET=${{ matrix.triple.target }}
           case $TARGET in
-            "armv7-linux-androideabi" | aarch64-linux-android" | "x86_64-linux-android" | "i686-linux-android")
+            "armv7-linux-androideabi" | "aarch64-linux-android" | "x86_64-linux-android" | "i686-linux-android")
               sudo apt-get install musl-tools libssl-dev
               CURRENT=`pwd`
               mkdir -p $HOME/usr/local
