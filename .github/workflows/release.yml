@@ -72,8 +72,8 @@ jobs:
               os: macos-latest,
               target: universal,
               cross: false,
-              artifact_name: universal.zip,
-              asset_name: universal.zip
+              artifact_name: universal-ios.zip,
+              asset_name: universal-ios.zip
             }
 
     steps:
