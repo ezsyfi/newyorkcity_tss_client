@@ -11,63 +11,70 @@ jobs:
     strategy:
       matrix:
         triple:
-          # x86_64 linux, bin
+          # x86_64 linux, bin and lib
           - { 
               os: ubuntu-latest,
               target: "x86_64-unknown-linux-gnu",
               cross: false,
-              artifact_name: cli,
-              asset_name: cli-x86_64-unknown-linux-gnu
+              artifact_name: x86_64-unknown-linux-gnu.zip,
+              asset_name: x86_64-unknown-linux-gnu.zip
             }
-          # x86_64 linux, lib
-          - { 
+          # x86_64 android, bin and lib
+          - {
               os: ubuntu-latest,
-              target: "x86_64-unknown-linux-gnu",
-              cross: false,
-              artifact_name: libclient.so,
-              asset_name: libclient-x86_64-unknown-linux-gnu.so
+              target: "x86_64-linux-android",
+              cross: true,
+              artifact_name: x86_64-linux-android.zip,
+              asset_name: x86_64-linux-android.zip
             }
-          # aarch64 android, lib
+          # aarch64 android, bin and lib
           - {
               os: ubuntu-latest,
               target: aarch64-linux-android,
               cross: true,
-              artifact_name: libclient.a,
-              asset_name: libclient-aarch64-linux-android.a
+              artifact_name: aarch64-linux-android.zip,
+              asset_name: aarch64-linux-android.zip
             }
-          # armv7 android, lib
+          # i686 android, bin and lib
+          - {
+              os: ubuntu-latest,
+              target: i686-linux-android,
+              cross: true,
+              artifact_name: i686-linux-android.zip,
+              asset_name: i686-linux-android.zip
+            }
+          # armv7 android, bin and lib
           - {
               os: ubuntu-latest,
               target: armv7-linux-androideabi,
               cross: true,
-              artifact_name: libclient.a,
-              asset_name: libclient-armv7-linux-androideabi.a
+              artifact_name: armv7-linux-androideabi.zip,
+              asset_name: armv7-linux-androideabi.zip
             }
-          # aarch64 ios, lib
+          # aarch64 ios, bin and lib
           - {
               os: macos-latest,
               target: aarch64-apple-ios,
               cross: false,
-              artifact_name: libclient.a,
-              asset_name: libclient-aarch64-apple-ios.a
+              artifact_name: aarch64-apple-ios.zip,
+              asset_name: aarch64-apple-ios.zip
             }
-          # x86_64 ios, lib
+          # x86_64 ios, bin and lib
           - {
               os: macos-latest,
               target: x86_64-apple-ios,
               cross: false,
-              artifact_name: libclient.a,
-              asset_name: libclient-x86_64-apple-ios.a
+              artifact_name: x86_64-apple-ios.zip,
+              asset_name: x86_64-apple-ios.zip
             }
-          # universal ios, lib
+          # universal ios, bin and lib
           - {
               os: macos-latest,
               target: universal,
               cross: false,
-              artifact_name: libclient.a,
-              asset_name: libclient-universal-ios.a
+              artifact_name: universal-ios.zip,
+              asset_name: universal-ios.zip
             }
-          # we can add in this too if we have time "x86_64-apple-darwin"
 
     steps:
       - name: Checkout code
@@ -77,7 +84,7 @@ jobs:
         run: |
           TARGET=${{ matrix.triple.target }}
           case $TARGET in
-            "aarch64-linux-android" | "armv7-linux-androideabi")
+            "armv7-linux-androideabi" | "aarch64-linux-android" | "x86_64-linux-android" | "i686-linux-android")
               sudo apt-get install musl-tools libssl-dev
               CURRENT=`pwd`
               mkdir -p $HOME/usr/local
@@ -93,7 +100,7 @@ jobs:
                 mkdir -p target/${TARGET}/release/deps
                 cp -rf $HOME/usr/local/${GMP_TARGET}/lib/libgmp* target/${TARGET}/release/deps/
               else
-                TARGET_SHORT_NAME=aarch64-linux-android
+                TARGET_SHORT_NAME=$TARGET
                 wget https://github.com/ezsyfi/gmp/releases/download/6.2.1/${TARGET}.zip
                 unzip ${TARGET}.zip
                 cd $CURRENT
@@ -119,13 +126,15 @@ jobs:
               cargo build --target $TARGET --lib --bin cli --release
               ;;
           esac
-          echo "See our release files "
+          echo "Check release"
           ls -la target/$TARGET/release
+          cd target/$TARGET/release
+          zip -r /tmp/${{ matrix.triple.artifact_name }} .
       - name: Upload binary to release
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/${{ matrix.triple.target }}/release/${{ matrix.triple.artifact_name }}
+          file: /tmp/${{ matrix.triple.artifact_name }}
           asset_name: ${{ matrix.triple.asset_name }}
           tag: ${{ github.event.client_payload.new_version }}
           overwrite: true

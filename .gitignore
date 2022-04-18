@@ -22,3 +22,5 @@ libclient.h
 
 # Ignore wallet data
 /wallet/
+
+.env*
