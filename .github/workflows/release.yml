@@ -11,21 +11,13 @@ jobs:
     strategy:
       matrix:
         triple:
-          # x86_64 linux, bin
+          # x86_64 linux, bin and lib
           - { 
               os: ubuntu-latest,
               target: "x86_64-unknown-linux-gnu",
               cross: false,
-              artifact_name: cli,
-              asset_name: cli-x86_64-unknown-linux-gnu
-            }
-          # x86_64 linux, lib
-          - { 
-              os: ubuntu-latest,
-              target: "x86_64-unknown-linux-gnu",
-              cross: false,
-              artifact_name: libclient.so,
-              asset_name: libclient-x86_64-unknown-linux-gnu.so
+              artifact_name: x86_64-unknown-linux-gnu.zip,
+              asset_name: x86_64-unknown-linux-gnu.zip
             }
           # aarch64 android, lib
           - {
@@ -121,11 +113,13 @@ jobs:
           esac
           echo "See our release files"
           ls -la target/$TARGET/release
+          cd target/$TARGET/release
+          zip -r /tmp/${{ matrix.triple.artifact_name }} .
       - name: Upload binary to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: target/${{ matrix.triple.target }}/release/${{ matrix.triple.artifact_name }}
+          file: /tmp/${{ matrix.triple.artifact_name }}
           asset_name: ${{ matrix.triple.asset_name }}
           tag: ${{ github.event.client_payload.new_version }}
           overwrite: true
