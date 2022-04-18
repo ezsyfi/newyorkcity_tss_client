@@ -17,10 +17,11 @@ use kms::chain_code::two_party::party2::ChainCode2;
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
-use crate::eth::utils::to_eth_address;
+use crate::eth::utils::pubkey_to_eth_address;
+use crate::utilities::derive_new_key;
 use crate::utilities::dto::{BlockCypherRawTx, MKPosDto, UtxoAggregator};
-use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
+use crate::utilities::tests::RINKEBY_TEST_API;
 
 use super::btc;
 
@@ -252,7 +253,7 @@ impl Wallet {
         }
     }
 
-    pub fn get_crypto_address(&mut self) {
+    pub fn get_crypto_address(&mut self) -> String {
         let (pos, mk) = derive_new_key(&self.private_share, self.last_derived_pos);
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
@@ -262,14 +263,17 @@ impl Wallet {
             self.last_derived_pos = pos;
 
             println!("BTC Network: [{}], Address: [{}]", &self.network, address);
+            return address.to_string();
         } else if coin_type == "eth" {
-            let address = to_eth_address(&mk);
+            let address = pubkey_to_eth_address(&mk);
             self.addresses_derivation_map
                 .insert(format!("{:?}", address), MKPosDto { mk, pos });
             self.last_derived_pos = pos;
 
             println!("ETH address: {:?}", address);
+            return address.to_string();
         }
+        "".to_owned()
     }
 
     pub fn derived(&mut self) -> Result<()> {
@@ -325,12 +329,9 @@ impl Wallet {
 
 #[tokio::main]
 async fn get_eth_balance(last_derived_pos: u32, private_share: &PrivateShare) -> Result<f64> {
-    let balance_l = eth::utils::get_all_addresses_balance(
-        "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J",
-        last_derived_pos,
-        private_share,
-    )
-    .await?;
+    let balance_l =
+        eth::utils::get_all_addresses_balance(RINKEBY_TEST_API, last_derived_pos, private_share)
+            .await?;
 
     let mut total = 0.0;
     for b in balance_l {

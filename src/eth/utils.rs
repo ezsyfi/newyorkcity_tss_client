@@ -43,14 +43,14 @@ pub fn get_all_addresses(
             .master_key
             .get_child(vec![BigInt::from(0), BigInt::from(n)]);
 
-        let eth_address = to_eth_address(&mk);
+        let eth_address = pubkey_to_eth_address(&mk);
         response.push(eth_address);
     }
 
     Ok(response)
 }
 
-pub fn to_eth_address(mk: &MasterKey2) -> Address {
+pub fn pubkey_to_eth_address(mk: &MasterKey2) -> Address {
     let pub_k = mk.public.q.get_element().serialize_uncompressed();
     let hash = keccak256(&pub_k[1..]);
     Address::from_slice(&hash[12..])
@@ -71,16 +71,9 @@ async fn get_balance(public_address: String, web3_connection: &Web3<WebSocket>) 
     Ok(balance)
 }
 
-fn wei_to_eth(wei_val: U256) -> f64 {
+pub fn wei_to_eth(wei_val: U256) -> f64 {
     let res = wei_val.as_u128() as f64;
     res / 1_000_000_000_000_000_000.0
-}
-
-pub fn eth_to_wei(eth_val: f64) -> U256 {
-    let result = eth_val * 1_000_000_000_000_000_000.0;
-    let result = result as u128;
-
-    U256::from(result)
 }
 
 pub async fn establish_web3_connection(url: &str) -> Result<Web3<transports::WebSocket>> {

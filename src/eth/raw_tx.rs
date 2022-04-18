@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::ecdsa::sign::sign;
 use crate::ecdsa::PrivateShare;
 use crate::eth::transaction::Transaction;
-use crate::eth::utils::to_eth_address;
+use crate::eth::utils::pubkey_to_eth_address;
 use crate::utilities::dto::{
     EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp, MKPosDto,
 };
@@ -37,8 +37,8 @@ pub fn sign_and_send(
     let mk = &pos_mk.mk;
     let pos = pos_mk.pos;
 
+    let from_address = pubkey_to_eth_address(mk);
     let to_address = Address::from_str(to)?;
-    let from_address = to_eth_address(mk);
 
     let tx_params_body = EthTxParamsReqBody {
         from_address,

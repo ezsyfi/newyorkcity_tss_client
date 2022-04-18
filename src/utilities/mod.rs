@@ -1,18 +1,20 @@
-use std::ffi::CString;
-use std::os::raw::c_char;
-
 pub mod a_requests;
 pub mod dto;
 pub mod err_handling;
 pub mod ffi;
-pub mod hd_wallet;
 pub mod requests;
+pub mod tests;
 
-#[no_mangle]
-#[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn cstring_free(cstring: *mut c_char) {
-    if cstring.is_null() {
-        return;
-    }
-    unsafe { CString::from_raw(cstring) };
+use crate::ecdsa::PrivateShare;
+use curv::BigInt;
+use kms::ecdsa::two_party::MasterKey2;
+
+pub fn derive_new_key(private_share: &PrivateShare, pos: u32) -> (u32, MasterKey2) {
+    let last_pos: u32 = pos + 1;
+
+    let last_child_master_key = private_share
+        .master_key
+        .get_child(vec![BigInt::from(0), BigInt::from(last_pos)]);
+
+    (last_pos, last_child_master_key)
 }

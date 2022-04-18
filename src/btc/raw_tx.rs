@@ -1,12 +1,12 @@
 use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
 use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_key};
 use crate::ecdsa::{sign, PrivateShare};
+use crate::utilities::derive_new_key;
 use crate::utilities::dto::{MKPosAddressDto, MKPosDto, UtxoAggregator};
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::ffi::ffi_utils::{
     get_addresses_derivation_map_from_raw, get_client_shim_from_raw, get_private_share_from_raw,
 };
-use crate::utilities::hd_wallet::derive_new_key;
 use crate::utilities::requests::ClientShim;
 
 use anyhow::{anyhow, Result};
@@ -169,7 +169,7 @@ pub fn create_raw_tx(
 
 // TODO: handle fees
 // Select all txin enough to pay the amount
-fn select_tx_in(
+pub fn select_tx_in(
     amount_btc: f64,
     last_derived_pos: u32,
     private_share: &PrivateShare,
@@ -291,20 +291,5 @@ pub extern "C" fn get_raw_btc_tx(
             msg: "raw_tx".to_owned(),
             e: e.to_string(),
         }),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use anyhow::Result;
-
-    use crate::{btc::utils::get_test_private_share, ecdsa::PrivateShare};
-
-    #[test]
-    fn test_select_tx_in() -> Result<()> {
-        let private_share: PrivateShare = get_test_private_share();
-        let unspent_list = super::select_tx_in(0.0, 0, &private_share)?;
-        assert!(unspent_list.is_empty());
-        Ok(())
     }
 }

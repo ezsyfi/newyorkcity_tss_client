@@ -150,8 +150,7 @@ impl Transaction {
 
     /// Sign and return a raw signed transaction.
     pub fn sign(self, signature: Signature, chain_id: u64) -> SignedTransaction {
-        let encoded = self.encode(chain_id, None);
-        let hash = signing::keccak256(encoded.as_ref());
+        let hash = self.get_hash(chain_id);
         let signed = self.encode(chain_id, Some(&signature));
         let transaction_hash = signing::keccak256(signed.as_ref()).into();
 

@@ -6,13 +6,13 @@ use std::{
 use crate::{
     ecdsa::PrivateShare,
     utilities::{
+        derive_new_key,
         dto::MKPosAddressDto,
         err_handling::{error_to_c_string, ErrorFFIKind},
-        hd_wallet::derive_new_key,
     },
 };
 
-use super::utils::to_eth_address;
+use super::utils::pubkey_to_eth_address;
 
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -28,7 +28,7 @@ pub extern "C" fn get_eth_addrs(
     let private_share: PrivateShare = serde_json::from_str(private_share_json).unwrap();
 
     let (pos, mk) = derive_new_key(&private_share, c_last_derived_pos);
-    let address = to_eth_address(&mk);
+    let address = pubkey_to_eth_address(&mk);
 
     let mk_pos_address = MKPosAddressDto {
         address: address.to_string(),
