@@ -12,14 +12,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Bump version and push tag/create release point
+        with:
+          fetch-depth: '0'
+      - name: Bump version and push tag
         id: bump_version
-        uses: anothrNick/github-tag-action@1.17.2
+        uses: anothrNick/github-tag-action@1.36.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: patch
-          RELEASE_BRANCHES: main,dev
+          RELEASE_BRANCHES: dev
       - name: Repository dispatch tag created event
         uses: peter-evans/repository-dispatch@v2
         with:
