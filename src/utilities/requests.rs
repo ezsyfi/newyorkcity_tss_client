@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use floating_duration::TimeFormat;
 use serde;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[derive(Debug)]
 pub struct ClientShim {
@@ -14,7 +14,6 @@ pub struct ClientShim {
 impl ClientShim {
     pub fn new(endpoint: String, auth_token: Option<String>, user_id: String) -> ClientShim {
         let client = reqwest::blocking::Client::builder()
-            .timeout(Duration::new(u32::MAX.into(), 0))
             .build()
             .unwrap();
 

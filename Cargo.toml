@@ -38,6 +38,10 @@ futures = "0.3"
 thiserror = "1.0"
 rlp = "0.5.1"
 
+[dependencies.centipede]
+git = "https://github.com/KZen-networks/centipede"
+tag = "v0.2.12"
+
 [dependencies.zk-paillier]
 git = "https://github.com/KZen-networks/zk-paillier"
 tag = "v0.3.12"
@@ -58,9 +62,5 @@ tag = "v0.4.6"
 # git = "https://github.com/KZen-networks/multi-party-schnorr"
 # tag = "v0.4.4"
 
-[dependencies.centipede]
-git = "https://github.com/KZen-networks/centipede"
-tag = "v0.2.12"
-
-[patch.crates-io]
-rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
+# [patch.crates-io]
+# rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
