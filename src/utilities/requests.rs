@@ -13,9 +13,7 @@ pub struct ClientShim {
 
 impl ClientShim {
     pub fn new(endpoint: String, auth_token: Option<String>, user_id: String) -> ClientShim {
-        let client = reqwest::blocking::Client::builder()
-            .build()
-            .unwrap();
+        let client = reqwest::blocking::Client::builder().build().unwrap();
 
         ClientShim {
             client,
