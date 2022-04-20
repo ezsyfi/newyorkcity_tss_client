@@ -52,6 +52,7 @@ impl Wallet {
             Ok(p) => p,
             Err(e) => panic!("{}", e),
         };
+
         let last_derived_pos = 0;
         let addresses_derivation_map = HashMap::new();
 
