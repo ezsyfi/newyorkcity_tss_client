@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod btc_test_suite {
 
+    use std::collections::HashMap;
+
     use crate::{
         btc::{
             raw_tx::select_tx_in,
@@ -10,7 +12,12 @@ mod btc_test_suite {
             },
         },
         ecdsa::PrivateShare,
-        utilities::{derive_new_key, tests::get_test_private_share},
+        utilities::{
+            derive_new_key,
+            requests::ClientShim,
+            tests::{get_test_private_share, mock_sign_in, TEST_WALLET_FILENAME},
+        },
+        wallet::Wallet,
     };
     use anyhow::Result;
     use bitcoin::Network;
@@ -56,7 +63,6 @@ mod btc_test_suite {
         assert!(!address_balance_list.is_empty());
 
         let address_balance = address_balance_list.get(0).unwrap();
-        // assert_eq!(address_balance.confirmed, 0);
         assert!(address_balance.confirmed > 0);
         assert_eq!(address_balance.unconfirmed, 0);
         assert_eq!(
@@ -74,27 +80,43 @@ mod btc_test_suite {
         Ok(())
     }
 
-    // TODO: Find a reliable way of doing integration testing over the blockchain.
-    // TODO: Ideally we would like to do the whole flow of receiving and sending. PR welcome ;)
-    //    #[test]
-    //    fn send_test() {
-    //        // expect the server running
-    //        let client_shim : api::ClientShim = api::ClientShim::new(
-    //            "http://localhost:8001".to_string(), None);
+    // TODO: To test `send` feature on created account, we need to complete recover feature first.
+    //       So maybe we can restore the wallet from the backup file.
+    #[test]
+    fn send_test() {
+        // expect the server running
+        let mut settings = config::Config::default();
+        settings
+            .merge(config::File::with_name("Settings"))
+            .unwrap()
+            .merge(config::Environment::new())
+            .unwrap();
+        let hm = settings.try_into::<HashMap<String, String>>().unwrap();
+        let endpoint = hm.get("endpoint").unwrap();
+        let email = hm.get("TEST_EMAIL").unwrap();
+        let password = hm.get("TEST_PASS").unwrap();
+        let signin_url = hm.get("TEST_SIGNIN_URL").unwrap();
 
-    //        let  mut w : Wallet = Wallet::load_from(TEST_WALLET_FILENAME);
-    //        let b = w.get_balance();
-    //        assert!(b.confirmed > 0);
+        let mock_token_obj = mock_sign_in(email, password, signin_url);
 
-    //        let available_balance = b.confirmed as f32 / 100000000 as f32;
-    //        let to_send = 0.00000001;
-    //        let delta_pessimistic_fees = 0.00013; // 0.5 usd - 03/14/2019
-    //        assert!(available_balance > to_send + delta_pessimistic_fees, "You need to refund the wallet");
+        let client_shim = ClientShim::new(
+            endpoint.to_string(),
+            Some(mock_token_obj.token),
+            mock_token_obj.user_id,
+        );
 
-    //        let to_address = w.get_new_address(); // inner wallet tx
-    //        let txid = w.send(to_address.to_string(), to_send, &client_shim);
-    //        assert!(!txid.is_empty());
-    //    }
+        let mut w: Wallet = Wallet::load_from(TEST_WALLET_FILENAME);
+
+        let to_send = 0.00000001;
+
+        let txid = w.send(
+            "",
+            "tb1qeaggs7flg6pjyffxdqmeymf06385ynpc9y06f9",
+            to_send,
+            &client_shim,
+        );
+        assert!(!txid.is_empty());
+    }
 }
 
 #[cfg(test)]

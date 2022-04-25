@@ -1,5 +1,6 @@
 {
     "id": "3d6c7814-8da3-4784-aa11-41c19c2ea15f",
+    "coin_type": "btc",
     "network": "testnet",
     "private_share": {
         "id": "4e65cc7a-7a13-488a-ae78-68c30e4ebc6c",

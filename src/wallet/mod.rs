@@ -203,7 +203,7 @@ impl Wallet {
         to_address: &str,
         amount: f64,
         client_shim: &ClientShim,
-    ) {
+    ) -> String {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
             let raw_tx_opt = btc::raw_tx::create_raw_tx(
@@ -214,15 +214,28 @@ impl Wallet {
                 &self.private_share,
                 &self.addresses_derivation_map,
             );
-            let raw_tx = match raw_tx_opt {
+
+            let raw_tx_opt = match raw_tx_opt {
                 Ok(tx) => tx,
                 Err(e) => {
                     panic!("Unable to create raw transaction {}", e);
                 }
             };
+
+            let raw_tx = raw_tx_opt.unwrap();
+            let change_address_payload = raw_tx.change_address_payload;
+
+            let _ = &self.addresses_derivation_map.insert(
+                change_address_payload.address,
+                MKPosDto {
+                    mk: change_address_payload.mk,
+                    pos: change_address_payload.pos,
+                },
+            );
+
             let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
             let raw_tx = BlockCypherRawTx {
-                tx: raw_tx.unwrap().raw_tx_hex,
+                tx: raw_tx.raw_tx_hex,
             };
             let tx_state = reqwest::blocking::Client::new()
                 .post(raw_tx_url)
@@ -236,6 +249,7 @@ impl Wallet {
                 "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
                 &self.network, amount, &to_address, tx_state
             );
+            return tx_state;
         } else if coin_type == "eth" {
             let tx_hash = send_eth(
                 amount,
@@ -251,7 +265,9 @@ impl Wallet {
                 "Sent {} ETH to address {}. Transaction State: {:?}",
                 amount, &to_address, tx_hash
             );
+            return tx_hash.to_string();
         }
+        "".to_owned()
     }
 
     pub fn get_crypto_address(&mut self) -> String {
