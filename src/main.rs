@@ -17,11 +17,8 @@ fn main() {
 
     let mut settings = config::Config::default();
     settings
-        // Add in `./Settings.toml`
         .merge(config::File::with_name("Settings"))
         .unwrap()
-        // Add in settings from the environment (with prefix "APP")
-        // Eg.. `APP_DEBUG=1 ./target/app` would set the `debug` key
         .merge(config::Environment::new())
         .unwrap();
     let hm = settings.try_into::<HashMap<String, String>>().unwrap();
@@ -122,7 +119,7 @@ fn main() {
             if let Some(matches) = matches.subcommand_matches("send") {
                 let from: &str = matches.value_of("from").unwrap();
                 let to: &str = matches.value_of("to").unwrap();
-                let amount_btc: &str = matches.value_of("amount").unwrap();
+                let amount: &str = matches.value_of("amount").unwrap();
                 let token: &str = matches.value_of("token").unwrap();
                 client_shim.auth_token = Some(token.to_owned());
 
@@ -131,7 +128,7 @@ fn main() {
                 wallet.send(
                     from,
                     to,
-                    amount_btc.to_string().parse::<f64>().unwrap(),
+                    amount.to_string().parse::<f64>().unwrap(),
                     &client_shim,
                 );
 

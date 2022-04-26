@@ -1,2 +1,5 @@
-# endpoint = "http://localhost:8001"
-endpoint = "https://tss.newyorkcity-staging.ezsy.com"
+# endpoint="http://localhost:8001"
+endpoint="https://tss.newyorkcity-staging.ezsy.com"
+TEST_EMAIL="huydiep9628@gmail.com"
+TEST_PASS="123456"
+TEST_SIGNIN_URL="https://go.api-staging.ezsy.com/api/v1/auth/signin"
