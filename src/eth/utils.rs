@@ -1,5 +1,5 @@
 use anyhow::Result;
-use curv::{elliptic::curves::traits::ECPoint, BigInt};
+use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint, BigInt};
 use futures::future::try_join_all;
 use kms::ecdsa::two_party::MasterKey2;
 use std::str::FromStr;

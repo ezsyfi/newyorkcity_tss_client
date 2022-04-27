@@ -11,9 +11,9 @@ use crate::utilities::requests::ClientShim;
 
 use anyhow::{anyhow, Result};
 use bitcoin::util::bip143::SigHashCache;
-use curv::arithmetic::traits::Converter; // Need for signing
-use curv::elliptic::curves::traits::ECPoint;
-use curv::BigInt;
+use two_party_ecdsa::curv::arithmetic::traits::Converter;
+use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint, BigInt};
+
 use itertools::Itertools;
 
 use std::collections::HashMap;
@@ -44,7 +44,7 @@ pub fn create_raw_tx(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<Option<BtcRawTxFFIResp>> {
-    let selected = select_tx_in(sent_amount, last_derived_pos, private_share)?;
+    let selected = select_tx_in(last_derived_pos, private_share)?;
 
     /* Specify "vin" array aka Transaction Inputs */
     let txs_in: Vec<TxIn> = selected
@@ -143,15 +143,14 @@ pub fn create_raw_tx(
 
         let signature = sign(
             client_shim,
-            BigInt::from_hex(&hex::encode(&sig_hash[..])).unwrap(),
+            BigInt::from_hex(&hex::encode(&sig_hash[..])),
             mk,
-            BigInt::from(0),
+            BigInt::from(0i32),
             BigInt::from(address_derivation.pos),
             &private_share.id,
         )?;
-
-        let mut v = BigInt::to_bytes(&signature.r);
-        v.extend(BigInt::to_bytes(&signature.s));
+        let mut v = BigInt::to_vec(&signature.r);
+        v.extend(BigInt::to_vec(&signature.s));
 
         // Serialize the (R,S) value of ECDSA Signature
         let mut sig_vec = Signature::from_compact(&v[..])?.serialize_der().to_vec();
@@ -170,7 +169,6 @@ pub fn create_raw_tx(
 // TODO: handle fees
 // Select all txin enough to pay the amount
 pub fn select_tx_in(
-    sent_amount: f64,
     last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Result<Vec<UtxoAggregator>> {

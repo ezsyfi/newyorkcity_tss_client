@@ -1,15 +1,14 @@
 use anyhow::{anyhow, Result};
 use floating_duration::TimeFormat;
 use serde_json;
+use two_party_ecdsa::curv::cryptographic_primitives::twoparty::dh_key_exchange_variant_with_pok_comm::*;
+use two_party_ecdsa::party_one;
 use std::time::Instant;
 
-use curv::cryptographic_primitives::twoparty::dh_key_exchange_variant_with_pok_comm::*;
-use curv::elliptic::curves::secp256_k1::GE;
 
 use kms::chain_code::two_party as chain_code;
 use kms::ecdsa::two_party::*;
-use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
-use zk_paillier::zkproofs::SALT_STRING;
+
 
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::requests::ClientShim;
@@ -42,10 +41,9 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
             None => return Err(anyhow!("keygen second message request failed")),
         };
 
-    let (_, party_two_paillier) = match MasterKey2::key_gen_second_message(
+    let party_two_paillier = match MasterKey2::key_gen_second_message(
         &kg_party_one_first_message,
         &kg_party_one_second_message,
-        SALT_STRING,
     ) {
         Ok(s) => s,
         Err(_) => return Err(anyhow!("calculate paillier public failed")),
@@ -66,7 +64,7 @@ pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
     let body = &cc_party_two_first_message.d_log_proof;
 
     // Initiate 2-round zk proof with P1 & receive the decom proof from P1
-    let cc_party_one_second_message: Party1SecondMessage<GE> = match requests::postb(
+    let cc_party_one_second_message: Party1SecondMessage = match requests::postb(
         client_shim,
         &format!("{}/{}/chaincode/second", KG_PATH_PRE, id),
         body,

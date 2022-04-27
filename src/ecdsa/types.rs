@@ -1,4 +1,4 @@
-use curv::BigInt;
+use two_party_ecdsa::curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 
 #[derive(Serialize, Deserialize)]

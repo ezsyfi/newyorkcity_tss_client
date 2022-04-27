@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Result};
-use curv::BigInt;
+use two_party_ecdsa::curv::BigInt;
 use kms::ecdsa::two_party::party2;
 use kms::ecdsa::two_party::MasterKey2;
-use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::party_one;
-use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::party_two;
+use two_party_ecdsa::party_one;
+use two_party_ecdsa::party_two;
 
 use super::super::utilities::requests;
 use crate::utilities::a_requests;

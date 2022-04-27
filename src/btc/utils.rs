@@ -1,10 +1,7 @@
-use std::fs;
-
 use anyhow::{anyhow, Result};
 use bitcoin::{self, Network};
-use curv::elliptic::curves::secp256_k1::PK;
-use curv::elliptic::curves::traits::ECPoint;
-use curv::BigInt;
+use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint, BigInt, PK};
+
 use kms::ecdsa::two_party::MasterKey2;
 
 use crate::ecdsa::PrivateShare;
@@ -99,10 +96,8 @@ pub fn to_bitcoin_address(network: &str, mk: &MasterKey2) -> Result<bitcoin::Add
 }
 
 pub fn to_bitcoin_public_key(pk: PK) -> bitcoin::util::key::PublicKey {
-    bitcoin::util::key::PublicKey {
-        compressed: true,
-        key: pk,
-    }
+    bitcoin::util::key::PublicKey::from_slice(pk.serialize().as_slice())
+        .expect("Error while creating bitcoin public key")
 }
 
 pub fn get_bitcoin_network(nw: &str) -> Result<Network> {

@@ -21,7 +21,7 @@ mod btc_test_suite {
     };
     use anyhow::Result;
     use bitcoin::Network;
-    use curv::elliptic::curves::traits::ECPoint;
+    use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint};
 
     #[test]
     fn test_get_bitcoin_network() -> Result<()> {
@@ -75,7 +75,7 @@ mod btc_test_suite {
     #[test]
     fn test_select_tx_in() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let unspent_list = select_tx_in(0.0, 0, &private_share)?;
+        let unspent_list = select_tx_in(0, &private_share)?;
         assert!(!unspent_list.is_empty());
         Ok(())
     }
@@ -122,7 +122,7 @@ mod btc_test_suite {
 #[cfg(test)]
 mod eth_test_suite {
     use anyhow::Result;
-    use curv::BigInt;
+    use two_party_ecdsa::curv::BigInt;
     use web3::types::U256;
 
     use crate::{

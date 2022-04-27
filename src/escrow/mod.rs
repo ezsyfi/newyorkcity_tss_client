@@ -1,8 +1,5 @@
-use curv::elliptic::curves::secp256_k1::{FE, GE};
-use curv::elliptic::curves::traits::ECPoint;
-use curv::elliptic::curves::traits::ECScalar;
-
 use serde_json;
+use two_party_ecdsa::{curv::elliptic::curves::traits::ECScalar, ECPoint, FE, GE};
 use std::fs;
 
 const ESCROW_SK_FILENAME: &str = "escrow/escrow-sk.json";

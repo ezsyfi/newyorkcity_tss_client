@@ -15,8 +15,10 @@ use crate::utilities::ffi::ffi_utils::{
 use crate::utilities::requests::{self, ClientShim};
 
 use anyhow::{anyhow, Result};
-use curv::arithmetic::traits::Converter;
-use curv::BigInt;
+
+use two_party_ecdsa::curv::arithmetic::traits::Converter;
+use two_party_ecdsa::curv::BigInt;
+
 use hex;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
@@ -68,15 +70,15 @@ pub fn sign_and_send(
 
     let sig = sign(
         client_shim,
-        BigInt::from_hex(&hex::encode(&msg[..])).unwrap(),
+        BigInt::from_hex(&hex::encode(&msg[..])),
         mk,
-        BigInt::from(0),
+        BigInt::from(0i32),
         BigInt::from(pos),
         &private_share.id,
     )?;
 
-    let r = H256::from_slice(&BigInt::to_bytes(&sig.r));
-    let s = H256::from_slice(&BigInt::to_bytes(&sig.s));
+    let r = H256::from_slice(&BigInt::to_vec(&sig.r));
+    let s = H256::from_slice(&BigInt::to_vec(&sig.s));
     let v = sig.recid as u64 + 35 + chain_id * 2;
     let signature = Signature { r, s, v };
     let signed = tx.sign(signature, chain_id);

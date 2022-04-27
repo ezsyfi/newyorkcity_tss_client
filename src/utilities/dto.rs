@@ -1,6 +1,6 @@
-use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
+use two_party_ecdsa::BigInt;
 use web3::types::{AccessList, Address, Bytes, H256, U256, U64};
 
 #[derive(Serialize, Deserialize)]

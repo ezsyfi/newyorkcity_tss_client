@@ -6,8 +6,8 @@ pub mod requests;
 pub mod tests;
 
 use crate::ecdsa::PrivateShare;
-use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
+use two_party_ecdsa::BigInt;
 
 pub fn derive_new_key(private_share: &PrivateShare, pos: u32) -> (u32, MasterKey2) {
     let last_pos: u32 = pos + 1;

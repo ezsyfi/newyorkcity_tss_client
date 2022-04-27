@@ -71,51 +71,53 @@ fn main() {
                 network,
                 hashes.join("\n")
             );
-        } else if matches.is_present("backup") {
-            let escrow = escrow::Escrow::load();
+        }
+        // else if matches.is_present("backup") {
+        //     let escrow = escrow::Escrow::load();
 
-            println!("Backup private share pending (it can take some time)...");
+        //     println!("Backup private share pending (it can take some time)...");
 
-            let start = Instant::now();
-            wallet.backup(escrow);
+        //     let start = Instant::now();
+        //     wallet.backup(escrow);
 
-            println!(
-                "Backup key saved in escrow (Took: {})",
-                TimeFormat(start.elapsed())
-            );
-        } else if matches.is_present("verify") {
-            let escrow = escrow::Escrow::load();
+        //     println!(
+        //         "Backup key saved in escrow (Took: {})",
+        //         TimeFormat(start.elapsed())
+        //     );
+        // } else if matches.is_present("verify") {
+        //     let escrow = escrow::Escrow::load();
 
-            println!("verify encrypted backup (it can take some time)...");
+        //     println!("verify encrypted backup (it can take some time)...");
 
-            let start = Instant::now();
-            wallet.verify_backup(escrow);
+        //     let start = Instant::now();
+        //     wallet.verify_backup(escrow);
 
-            println!(" (Took: {})", TimeFormat(start.elapsed()));
-        } else if matches.is_present("restore") {
-            let escrow = escrow::Escrow::load();
+        //     println!(" (Took: {})", TimeFormat(start.elapsed()));
+        // } else if matches.is_present("restore") {
+        //     let escrow = escrow::Escrow::load();
 
-            println!("backup recovery in process 📲 (it can take some time)...");
+        //     println!("backup recovery in process 📲 (it can take some time)...");
 
-            let start = Instant::now();
-            wallet::Wallet::recover_and_save_share(escrow, &network, &client_shim);
+        //     let start = Instant::now();
+        //     wallet::Wallet::recover_and_save_share(escrow, &network, &client_shim);
 
-            println!(
-                " Backup recovered 💾(Took: {})",
-                TimeFormat(start.elapsed())
-            );
-        } else if matches.is_present("rotate") {
-            println!("Rotating secret shares");
+        //     println!(
+        //         " Backup recovered 💾(Took: {})",
+        //         TimeFormat(start.elapsed())
+        //     );
+        // } else if matches.is_present("rotate") {
+        //     println!("Rotating secret shares");
 
-            let start = Instant::now();
-            let wallet = wallet.rotate(&client_shim);
-            wallet.save();
+        //     let start = Instant::now();
+        //     let wallet = wallet.rotate(&client_shim);
+        //     wallet.save();
 
-            println!(
-                "key rotation complete, (Took: {})",
-                TimeFormat(start.elapsed())
-            );
-        } else if matches.is_present("send") {
+        //     println!(
+        //         "key rotation complete, (Took: {})",
+        //         TimeFormat(start.elapsed())
+        //     );
+        // }
+        else if matches.is_present("send") {
             if let Some(matches) = matches.subcommand_matches("send") {
                 let from: &str = matches.value_of("from").unwrap();
                 let to: &str = matches.value_of("to").unwrap();

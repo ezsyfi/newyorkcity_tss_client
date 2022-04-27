@@ -1,17 +1,12 @@
 use anyhow::Result;
 use bitcoin::{self};
-use curv::elliptic::curves::secp256_k1::GE;
-use curv::elliptic::curves::traits::ECPoint;
-use curv::BigInt;
-use kms::ecdsa::two_party::MasterKey2;
-use kms::ecdsa::two_party::*;
+
 use serde_json::{self};
+use two_party_ecdsa::ECPoint;
 use std::fs;
 use uuid::Uuid;
 use web3::types::H256;
 
-use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
-use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
@@ -66,110 +61,110 @@ impl Wallet {
         }
     }
 
-    pub fn rotate(self, client_shim: &ClientShim) -> Self {
-        ecdsa::rotate_master_key(self, client_shim)
-    }
+    // pub fn rotate(self, client_shim: &ClientShim) -> Self {
+    //     ecdsa::rotate_master_key(self, client_shim)
+    // }
 
-    pub fn backup(&self, escrow_service: escrow::Escrow) {
-        let g: GE = ECPoint::generator();
-        let y = escrow_service.get_public_key();
-        let (segments, encryptions) = self.private_share.master_key.private.to_encrypted_segment(
-            escrow::SEGMENT_SIZE,
-            escrow::NUM_SEGMENTS,
-            &y,
-            &g,
-        );
+    // pub fn backup(&self, escrow_service: escrow::Escrow) {
+    //     let g: GE = ECPoint::generator();
+    //     let y = escrow_service.get_public_key();
+    //     let (segments, encryptions) = self.private_share.master_key.private.to_encrypted_segment(
+    //         escrow::SEGMENT_SIZE,
+    //         escrow::NUM_SEGMENTS,
+    //         &y,
+    //         &g,
+    //     );
 
-        let proof = Proof::prove(&segments, &encryptions, &g, &y, &escrow::SEGMENT_SIZE);
+    //     let proof = Proof::prove(&segments, &encryptions, &g, &y, &escrow::SEGMENT_SIZE);
 
-        let client_backup_json = serde_json::to_string(&(
-            encryptions,
-            proof,
-            self.private_share.master_key.public.clone(),
-            self.private_share.master_key.chain_code.clone(),
-            self.private_share.id.clone(),
-        ))
-        .unwrap();
+    //     let client_backup_json = serde_json::to_string(&(
+    //         encryptions,
+    //         proof,
+    //         self.private_share.master_key.public.clone(),
+    //         self.private_share.master_key.chain_code.clone(),
+    //         self.private_share.id.clone(),
+    //     ))
+    //     .unwrap();
 
-        fs::write(BACKUP_FILENAME, client_backup_json).expect("Unable to save client backup!");
+    //     fs::write(BACKUP_FILENAME, client_backup_json).expect("Unable to save client backup!");
 
-        debug!("(wallet id: {}) Backup wallet with escrow", self.id);
-    }
+    //     debug!("(wallet id: {}) Backup wallet with escrow", self.id);
+    // }
 
-    pub fn verify_backup(&self, escrow_service: escrow::Escrow) {
-        let g: GE = ECPoint::generator();
-        let y = escrow_service.get_public_key();
+    // pub fn verify_backup(&self, escrow_service: escrow::Escrow) {
+    //     let g: GE = ECPoint::generator();
+    //     let y = escrow_service.get_public_key();
 
-        let data = fs::read_to_string(BACKUP_FILENAME).expect("Unable to load client backup!");
-        let (encryptions, proof, client_public, _, _): (
-            Helgamalsegmented,
-            Proof,
-            Party2Public,
-            ChainCode2,
-            String,
-        ) = serde_json::from_str(&data).unwrap();
-        let verify = proof.verify(
-            &encryptions,
-            &g,
-            &y,
-            &client_public.p2,
-            &escrow::SEGMENT_SIZE,
-        );
-        match verify {
-            Ok(_x) => println!("backup verified 🍻"),
-            Err(_e) => println!("Backup was not verified correctly 😲"),
-        }
-    }
+    //     let data = fs::read_to_string(BACKUP_FILENAME).expect("Unable to load client backup!");
+    //     let (encryptions, proof, client_public, _, _): (
+    //         Helgamalsegmented,
+    //         Proof,
+    //         Party2Public,
+    //         ChainCode2,
+    //         String,
+    //     ) = serde_json::from_str(&data).unwrap();
+    //     let verify = proof.verify(
+    //         &encryptions,
+    //         &g,
+    //         &y,
+    //         &client_public.p2,
+    //         &escrow::SEGMENT_SIZE,
+    //     );
+    //     match verify {
+    //         Ok(_x) => println!("backup verified 🍻"),
+    //         Err(_e) => println!("Backup was not verified correctly 😲"),
+    //     }
+    // }
 
-    pub fn recover_and_save_share(
-        escrow_service: escrow::Escrow,
-        net: &str,
-        client_shim: &ClientShim,
-    ) -> Wallet {
-        let g: GE = ECPoint::generator();
-        let y_priv = escrow_service.get_private_key();
+    // pub fn recover_and_save_share(
+    //     escrow_service: escrow::Escrow,
+    //     net: &str,
+    //     client_shim: &ClientShim,
+    // ) -> Wallet {
+    //     let g: GE = ECPoint::generator();
+    //     let y_priv = escrow_service.get_private_key();
 
-        let data = fs::read_to_string(BACKUP_FILENAME).expect("Unable to load client backup!");
+    //     let data = fs::read_to_string(BACKUP_FILENAME).expect("Unable to load client backup!");
 
-        let (encryptions, _proof, public_data, chain_code2, key_id): (
-            Helgamalsegmented,
-            Proof,
-            Party2Public,
-            BigInt,
-            String,
-        ) = serde_json::from_str(&data).unwrap();
+    //     let (encryptions, _proof, public_data, chain_code2, key_id): (
+    //         Helgamalsegmented,
+    //         Proof,
+    //         Party2Public,
+    //         BigInt,
+    //         String,
+    //     ) = serde_json::from_str(&data).unwrap();
 
-        let sk = Msegmentation::decrypt(&encryptions, &g, &y_priv, &escrow::SEGMENT_SIZE);
+    //     let sk = Msegmentation::decrypt(&encryptions, &g, &y_priv, &escrow::SEGMENT_SIZE);
 
-        let client_master_key_recovered =
-            MasterKey2::recover_master_key(sk.unwrap(), public_data, chain_code2);
-        let pos_old: u32 = requests::post(client_shim, &format!("ecdsa/{}/recover", key_id))
-            .unwrap()
-            .unwrap();
+    //     let client_master_key_recovered =
+    //         MasterKey2::recover_master_key(sk.unwrap(), public_data, chain_code2);
+    //     let pos_old: u32 = requests::post(client_shim, &format!("ecdsa/{}/recover", key_id))
+    //         .unwrap()
+    //         .unwrap();
 
-        let pos_old = if pos_old < 10 { 10 } else { pos_old };
-        //TODO: temporary, server will keep updated pos, to do so we need to send update to server for every get_new_address
+    //     let pos_old = if pos_old < 10 { 10 } else { pos_old };
+    //     //TODO: temporary, server will keep updated pos, to do so we need to send update to server for every get_new_address
 
-        let id = Uuid::new_v4().to_string();
-        let addresses_derivation_map = HashMap::new(); //TODO: add a fucntion to recreate
+    //     let id = Uuid::new_v4().to_string();
+    //     let addresses_derivation_map = HashMap::new(); //TODO: add a fucntion to recreate
 
-        let new_wallet = Wallet {
-            id,
-            coin_type: "btc".to_owned(),
-            network: net.to_owned(),
-            private_share: PrivateShare {
-                master_key: client_master_key_recovered,
-                id: key_id,
-            },
-            last_derived_pos: pos_old,
-            addresses_derivation_map,
-        };
+    //     let new_wallet = Wallet {
+    //         id,
+    //         coin_type: "btc".to_owned(),
+    //         network: net.to_owned(),
+    //         private_share: PrivateShare {
+    //             master_key: client_master_key_recovered,
+    //             id: key_id,
+    //         },
+    //         last_derived_pos: pos_old,
+    //         addresses_derivation_map,
+    //     };
 
-        new_wallet.save();
-        println!("Recovery Completed Successfully ❤️");
+    //     new_wallet.save();
+    //     println!("Recovery Completed Successfully ❤️");
 
-        new_wallet
-    }
+    //     new_wallet
+    // }
 
     pub fn save_to(&self, filepath: &str) {
         let wallet_json = serde_json::to_string(self).unwrap();
@@ -382,8 +377,8 @@ mod tests {
     use bitcoin::hashes::hex::ToHex;
     use bitcoin::hashes::sha256d;
     use bitcoin::hashes::Hash;
-    use curv::arithmetic::traits::Converter;
-    use curv::BigInt;
+    use two_party_ecdsa::BigInt;
+    use two_party_ecdsa::party_one::Converter;
 
     #[test]
     fn test_message_conv() {
@@ -399,7 +394,7 @@ mod tests {
         let ser = hash.to_hex();
 
         // 57149727877124134702546803488322951680010683936655914236113461592936003513108
-        let b: BigInt = BigInt::from_hex(&ser).unwrap();
+        let b: BigInt = BigInt::from_hex(&ser);
 
         println!("({},{},{})", hash, ser, b.to_hex());
     }
