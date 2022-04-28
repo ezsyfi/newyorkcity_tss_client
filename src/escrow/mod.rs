@@ -1,6 +1,6 @@
 use serde_json;
-use two_party_ecdsa::{curv::elliptic::curves::traits::ECScalar, ECPoint, FE, GE};
 use std::fs;
+use two_party_ecdsa::{curv::elliptic::curves::traits::ECScalar, ECPoint, FE, GE};
 
 const ESCROW_SK_FILENAME: &str = "escrow/escrow-sk.json";
 
@@ -16,7 +16,7 @@ impl Escrow {
     pub fn new() -> Escrow {
         let secret: FE = ECScalar::new_random();
         let g: GE = ECPoint::generator();
-        let public: GE = g * &secret;
+        let public: GE = g * secret;
         fs::write(
             ESCROW_SK_FILENAME,
             serde_json::to_string(&(secret, public)).unwrap(),
@@ -38,5 +38,11 @@ impl Escrow {
 
     pub fn get_private_key(&self) -> FE {
         self.secret
+    }
+}
+
+impl Default for Escrow {
+    fn default() -> Self {
+        Escrow::new()
     }
 }

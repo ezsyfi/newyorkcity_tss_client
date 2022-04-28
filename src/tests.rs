@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod btc_test_suite {
 
-    use std::collections::HashMap;
-
     use crate::{
         btc::{
             raw_tx::select_tx_in,
@@ -12,16 +10,11 @@ mod btc_test_suite {
             },
         },
         ecdsa::PrivateShare,
-        utilities::{
-            derive_new_key,
-            requests::ClientShim,
-            tests::{get_test_private_share, mock_sign_in, TEST_WALLET_FILENAME},
-        },
-        wallet::Wallet,
+        utilities::{derive_new_key, tests::get_test_private_share},
     };
     use anyhow::Result;
     use bitcoin::Network;
-    use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint};
+    use two_party_ecdsa::curv::elliptic::curves::traits::ECPoint;
 
     #[test]
     fn test_get_bitcoin_network() -> Result<()> {

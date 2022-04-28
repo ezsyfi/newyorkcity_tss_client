@@ -17,5 +17,3 @@ pub mod wallet;
 // pub mod schnorr;
 
 mod tests;
-
-

@@ -2,8 +2,8 @@ use anyhow::Result;
 use bitcoin::{self};
 
 use serde_json::{self};
-use two_party_ecdsa::ECPoint;
 use std::fs;
+use two_party_ecdsa::ECPoint;
 use uuid::Uuid;
 use web3::types::H256;
 
@@ -377,8 +377,8 @@ mod tests {
     use bitcoin::hashes::hex::ToHex;
     use bitcoin::hashes::sha256d;
     use bitcoin::hashes::Hash;
-    use two_party_ecdsa::BigInt;
     use two_party_ecdsa::party_one::Converter;
+    use two_party_ecdsa::BigInt;
 
     #[test]
     fn test_message_conv() {

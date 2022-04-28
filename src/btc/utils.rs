@@ -9,7 +9,7 @@ use crate::utilities::derive_new_key;
 use crate::utilities::dto::{BlockCypherAddress, BtcBalanceAggregator, UtxoAggregator};
 
 pub const BTC_TESTNET: &str = "testnet";
-pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3"; // TODO: Centralize the config constants
+pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
 
 pub fn list_unspent_for_addresss(address: String) -> Result<Vec<UtxoAggregator>> {
     let unspent_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address + "?unspentOnly=true";

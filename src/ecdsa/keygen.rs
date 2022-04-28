@@ -5,10 +5,8 @@ use two_party_ecdsa::curv::cryptographic_primitives::twoparty::dh_key_exchange_v
 use two_party_ecdsa::party_one;
 use std::time::Instant;
 
-
 use kms::chain_code::two_party as chain_code;
 use kms::ecdsa::two_party::*;
-
 
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::requests::ClientShim;

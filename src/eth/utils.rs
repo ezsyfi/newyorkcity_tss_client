@@ -1,8 +1,8 @@
 use anyhow::Result;
-use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint, BigInt};
 use futures::future::try_join_all;
 use kms::ecdsa::two_party::MasterKey2;
 use std::str::FromStr;
+use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint, BigInt};
 use web3::{
     self,
     signing::keccak256,

@@ -1,5 +1,5 @@
-use two_party_ecdsa::curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
+use two_party_ecdsa::curv::BigInt;
 
 #[derive(Serialize, Deserialize)]
 pub struct PrivateShare {

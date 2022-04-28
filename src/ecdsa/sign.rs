@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
-use two_party_ecdsa::curv::BigInt;
 use kms::ecdsa::two_party::party2;
 use kms::ecdsa::two_party::MasterKey2;
+use two_party_ecdsa::curv::BigInt;
 use two_party_ecdsa::party_one;
 use two_party_ecdsa::party_two;
 
