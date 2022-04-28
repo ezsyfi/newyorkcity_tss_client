@@ -38,17 +38,13 @@ pub struct BtcRawTxFFIResp {
 
 pub fn create_raw_tx(
     to_address: &str,
-    amount_btc: f64,
+    sent_amount: f64,
     client_shim: &ClientShim,
     last_derived_pos: u32,
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<Option<BtcRawTxFFIResp>> {
-    let selected = select_tx_in(amount_btc, last_derived_pos, private_share)?;
-
-    if selected.is_empty() {
-        return Err(anyhow!("Not enough fund"));
-    }
+    let selected = select_tx_in(sent_amount, last_derived_pos, private_share)?;
 
     /* Specify "vin" array aka Transaction Inputs */
     let txs_in: Vec<TxIn> = selected
@@ -67,7 +63,7 @@ pub fn create_raw_tx(
 
     /* Specify "vout" array aka Transaction Outputs */
     let relay_fees = 10_000; // Relay fees for miner
-    let amount_satoshi = (amount_btc * 100_000_000.0) as u64;
+    let amount_satoshi = (sent_amount * 100_000_000.0) as u64;
 
     let (change_pos, change_mk) = derive_new_key(private_share, last_derived_pos);
 
@@ -90,9 +86,13 @@ pub fn create_raw_tx(
         .fold(0, |sum, val| sum + val.value) as u64;
 
     println!(
-        "amount_satoshi: {} - total_selected: {}  ",
+        "send_amount: {} - total_balanced: {}  ",
         amount_satoshi, total_selected
     );
+
+    if total_selected < (amount_satoshi + relay_fees) {
+        return Err(anyhow!("Not enough fund"));
+    }
 
     let to_btc_adress = bitcoin::Address::from_str(to_address)?;
     let txs_out = vec![
@@ -170,7 +170,7 @@ pub fn create_raw_tx(
 // TODO: handle fees
 // Select all txin enough to pay the amount
 pub fn select_tx_in(
-    amount_btc: f64,
+    sent_amount: f64,
     last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Result<Vec<UtxoAggregator>> {
@@ -187,14 +187,9 @@ pub fn select_tx_in(
 
     // println!("list_unspent {:#?}", list_unspent);
 
-    let mut remaining: i64 = (amount_btc * 100_000_000.0) as i64;
     let mut selected: Vec<UtxoAggregator> = Vec::new();
     for unspent in list_unspent {
         selected.push(unspent.clone());
-        remaining -= unspent.value as i64;
-        if remaining < 0 {
-            break;
-        }
     }
     Ok(selected)
 }

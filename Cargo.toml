@@ -38,6 +38,10 @@ futures = "0.3"
 thiserror = "1.0"
 rlp = "0.5.1"
 
+[dependencies.centipede]
+git = "https://github.com/KZen-networks/centipede"
+tag = "v0.2.12"
+
 [dependencies.zk-paillier]
 git = "https://github.com/KZen-networks/zk-paillier"
 tag = "v0.3.12"
@@ -49,18 +53,3 @@ tag = "v0.3.0"
 [dependencies.multi-party-ecdsa]
 git = "https://github.com/KZen-networks/multi-party-ecdsa"
 tag = "v0.4.6"
-
-# [dependencies.multi-party-eddsa]
-# git = "https://github.com/KZen-networks/multi-party-eddsa"
-# tag = "v0.2.2"
-
-# [dependencies.multi-party-schnorr]
-# git = "https://github.com/KZen-networks/multi-party-schnorr"
-# tag = "v0.4.4"
-
-[dependencies.centipede]
-git = "https://github.com/KZen-networks/centipede"
-tag = "v0.2.12"
-
-[patch.crates-io]
-rust-gmp = { version = "0.5.0", features = ["serde_support"], git = "https://github.com/KZen-networks/rust-gmp" }
