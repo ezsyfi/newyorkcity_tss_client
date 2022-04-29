@@ -1,125 +1,123 @@
-// use centipede::juggling::proof_system::Helgamalsegmented;
-// use centipede::juggling::segmentation::Msegmentation;
-// use curv::arithmetic::{Converter, Modulo};
-// use curv::elliptic::curves::secp256_k1::{FE, GE};
-// use curv::elliptic::curves::traits::{ECPoint, ECScalar};
-// use curv::BigInt;
-// use kms::ecdsa::two_party::{MasterKey1, MasterKey2};
-// use serde_json;
-// use serde_json::Error;
-// // iOS bindings
-// use std::ffi::{CStr, CString};
-// use std::os::raw::c_char;
+use kms::ecdsa::two_party::{MasterKey1, MasterKey2};
+use serde_json;
+use serde_json::Error;
+use two_party_ecdsa::centipede::juggling::segmentation::Msegmentation;
+use two_party_ecdsa::curv::elliptic::curves::traits::ECScalar;
+use two_party_ecdsa::party_one::{Converter, Modulo};
+use two_party_ecdsa::{ECPoint, Helgamalsegmented, GE, BigInt, FE};
+// iOS bindings
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
 
-// #[no_mangle]
-// #[allow(non_snake_case)]
-// pub extern "C" fn decrypt_party_one_master_key(
-//     c_master_key_two_json: *const c_char,
-//     c_helgamal_segmented_json: *const c_char,
-//     c_private_key: *const c_char,
-// ) -> *mut c_char {
-//     let segment_size = 8; // This is hardcoded on both client and server side
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "C" fn decrypt_party_one_master_key(
+    c_master_key_two_json: *const c_char,
+    c_helgamal_segmented_json: *const c_char,
+    c_private_key: *const c_char,
+) -> *mut c_char {
+    let segment_size = 8; // This is hardcoded on both client and server side
 
-//     let G: GE = GE::generator();
+    let G: GE = GE::generator();
 
-//     let party_two_master_key: MasterKey2 =
-//         serde_json::from_str(&get_str_from_c_char(c_master_key_two_json)).unwrap();
+    let party_two_master_key: MasterKey2 =
+        serde_json::from_str(&get_str_from_c_char(c_master_key_two_json)).unwrap();
 
-//     let encryptions_secret_party1: Helgamalsegmented =
-//         serde_json::from_str(&get_str_from_c_char(c_helgamal_segmented_json)).unwrap();
+    let encryptions_secret_party1: Helgamalsegmented =
+        serde_json::from_str(&get_str_from_c_char(c_helgamal_segmented_json)).unwrap();
 
-//     let y_b: Result<BigInt, Error> = serde_json::from_str(&get_str_from_c_char(c_private_key));
-//     if y_b.is_err() {
-//         // Invalid BigInt Private key
-//         return CString::new("").unwrap().into_raw();
-//     }
+    let y_b: Result<BigInt, Error> = serde_json::from_str(&get_str_from_c_char(c_private_key));
+    if y_b.is_err() {
+        // Invalid BigInt Private key
+        return CString::new("").unwrap().into_raw();
+    }
 
-//     let y: FE = ECScalar::from(&y_b.unwrap());
+    let y: FE = ECScalar::from(&y_b.unwrap());
 
-//     let r = Msegmentation::decrypt(&encryptions_secret_party1, &G, &y, &segment_size);
+    let r = Msegmentation::decrypt(&encryptions_secret_party1, &G, &y, &segment_size);
 
-//     if let Ok(value) = r {
-//         let party_one_master_key_recovered =
-//             party_two_master_key.counter_master_key_from_recovered_secret(value);
+    if let Ok(value) = r {
+        let party_one_master_key_recovered =
+            party_two_master_key.counter_master_key_from_recovered_secret(value);
 
-//         let s = serde_json::to_string(&party_one_master_key_recovered).unwrap();
-//         CString::new(s).unwrap().into_raw()
-//     } else {
-//         CString::new("").unwrap().into_raw()
-//     }
-// }
+        let s = serde_json::to_string(&party_one_master_key_recovered).unwrap();
+        CString::new(s).unwrap().into_raw()
+    } else {
+        CString::new("").unwrap().into_raw()
+    }
+}
 
-// #[no_mangle]
-// pub extern "C" fn get_child_mk1(
-//     c_master_key_one_json: *const c_char,
-//     c_x_pos: i32,
-//     c_y_pos: i32,
-// ) -> *mut c_char {
-//     let party_one_master_key: MasterKey1 =
-//         serde_json::from_str(&get_str_from_c_char(c_master_key_one_json)).unwrap();
+#[no_mangle]
+pub extern "C" fn get_child_mk1(
+    c_master_key_one_json: *const c_char,
+    c_x_pos: i32,
+    c_y_pos: i32,
+) -> *mut c_char {
+    let party_one_master_key: MasterKey1 =
+        serde_json::from_str(&get_str_from_c_char(c_master_key_one_json)).unwrap();
 
-//     let x: BigInt = BigInt::from(c_x_pos);
+    let x: BigInt = BigInt::from(c_x_pos);
 
-//     let y: BigInt = BigInt::from(c_y_pos);
+    let y: BigInt = BigInt::from(c_y_pos);
 
-//     let derived_mk1 = party_one_master_key.get_child(vec![x, y]);
+    let derived_mk1 = party_one_master_key.get_child(vec![x, y]);
 
-//     let derived_mk1_json = match serde_json::to_string(&derived_mk1) {
-//         Ok(share) => share,
-//         Err(_) => panic!("Error while get_child_mk1"),
-//     };
+    let derived_mk1_json = match serde_json::to_string(&derived_mk1) {
+        Ok(share) => share,
+        Err(_) => panic!("Error while get_child_mk1"),
+    };
 
-//     CString::new(derived_mk1_json).unwrap().into_raw()
-// }
+    CString::new(derived_mk1_json).unwrap().into_raw()
+}
 
-// #[no_mangle]
-// pub extern "C" fn get_child_mk2(
-//     c_master_key_two_json: *const c_char,
-//     c_x_pos: i32,
-//     c_y_pos: i32,
-// ) -> *mut c_char {
-//     let party_two_master_key: MasterKey2 =
-//         serde_json::from_str(&get_str_from_c_char(c_master_key_two_json)).unwrap();
+#[no_mangle]
+pub extern "C" fn get_child_mk2(
+    c_master_key_two_json: *const c_char,
+    c_x_pos: i32,
+    c_y_pos: i32,
+) -> *mut c_char {
+    let party_two_master_key: MasterKey2 =
+        serde_json::from_str(&get_str_from_c_char(c_master_key_two_json)).unwrap();
 
-//     let x: BigInt = BigInt::from(c_x_pos);
+    let x: BigInt = BigInt::from(c_x_pos);
 
-//     let y: BigInt = BigInt::from(c_y_pos);
+    let y: BigInt = BigInt::from(c_y_pos);
 
-//     let derived_mk2 = party_two_master_key.get_child(vec![x, y]);
+    let derived_mk2 = party_two_master_key.get_child(vec![x, y]);
 
-//     let derived_mk2_json = match serde_json::to_string(&derived_mk2) {
-//         Ok(share) => share,
-//         Err(_) => panic!("Error while get_child_mk1"),
-//     };
+    let derived_mk2_json = match serde_json::to_string(&derived_mk2) {
+        Ok(share) => share,
+        Err(_) => panic!("Error while get_child_mk1"),
+    };
 
-//     CString::new(derived_mk2_json).unwrap().into_raw()
-// }
+    CString::new(derived_mk2_json).unwrap().into_raw()
+}
 
-// #[no_mangle]
-// pub extern "C" fn construct_single_private_key(
-//     c_mk1_x1: *const c_char,
-//     c_mk2_x2: *const c_char,
-// ) -> *mut c_char {
-//     let mk1_x1: BigInt = BigInt::from_hex(&get_str_from_c_char(c_mk1_x1)).unwrap();
+#[no_mangle]
+pub extern "C" fn construct_single_private_key(
+    c_mk1_x1: *const c_char,
+    c_mk2_x2: *const c_char,
+) -> *mut c_char {
+    let mk1_x1: BigInt = BigInt::from_hex(&get_str_from_c_char(c_mk1_x1));
 
-//     let mk2_x2: BigInt = BigInt::from_hex(&get_str_from_c_char(c_mk2_x2)).unwrap();
+    let mk2_x2: BigInt = BigInt::from_hex(&get_str_from_c_char(c_mk2_x2));
 
-//     let sk = BigInt::mod_mul(&mk1_x1, &mk2_x2, &FE::q());
+    let sk = BigInt::mod_mul(&mk1_x1, &mk2_x2, &FE::q());
 
-//     let sk_json = match serde_json::to_string(&sk) {
-//         Ok(share) => share,
-//         Err(_) => panic!("Error while construct_single_private_key"),
-//     };
+    let sk_json = match serde_json::to_string(&sk) {
+        Ok(share) => share,
+        Err(_) => panic!("Error while construct_single_private_key"),
+    };
 
-//     CString::new(sk_json).unwrap().into_raw()
-// }
+    CString::new(sk_json).unwrap().into_raw()
+}
 
-// fn get_str_from_c_char(c: *const c_char) -> String {
-//     let raw = unsafe { CStr::from_ptr(c) };
-//     let s = match raw.to_str() {
-//         Ok(s) => s,
-//         Err(_) => panic!("Error while decoding c_char to string"),
-//     };
+fn get_str_from_c_char(c: *const c_char) -> String {
+    let raw = unsafe { CStr::from_ptr(c) };
+    let s = match raw.to_str() {
+        Ok(s) => s,
+        Err(_) => panic!("Error while decoding c_char to string"),
+    };
 
-//     s.to_string()
-// }
+    s.to_string()
+}

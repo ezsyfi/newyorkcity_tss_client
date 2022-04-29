@@ -1,21 +1,23 @@
+// use crate::dto::rotate::{Rotation2, RotationParty1Message1};
 // use crate::utilities::requests::ClientShim;
 
 // use super::super::utilities::requests;
 // use super::super::wallet;
 // use super::types::PrivateShare;
-// use curv::cryptographic_primitives::twoparty::coin_flip_optimal_rounds;
-// use curv::elliptic::curves::secp256_k1::GE;
+// // use curv::cryptographic_primitives::twoparty::coin_flip_optimal_rounds;
+// // use curv::elliptic::curves::secp256_k1::GE;
 
 // use kms::ecdsa::two_party::*;
-// use kms::rotation::two_party::party2::Rotation2;
+// use two_party_ecdsa::curv::cryptographic_primitives::twoparty::coin_flip_optimal_rounds;
+// // use kms::rotation::two_party::party2::Rotation2;
 // use std::collections::HashMap;
-// use zk_paillier::zkproofs::SALT_STRING;
+// // use zk_paillier::zkproofs::SALT_STRING;
 
 // const ROT_PATH_PRE: &str = "ecdsa/rotate";
 
 // pub fn rotate_master_key(wallet: wallet::Wallet, client_shim: &ClientShim) -> wallet::Wallet {
 //     let id = &wallet.private_share.id.clone();
-//     let coin_flip_party1_first_message: coin_flip_optimal_rounds::Party1FirstMessage<GE> =
+//     let coin_flip_party1_first_message: coin_flip_optimal_rounds::Party1FirstMessage =
 //         requests::post(client_shim, &format!("{}/{}/first", ROT_PATH_PRE, id))
 //             .unwrap()
 //             .unwrap();
@@ -26,8 +28,8 @@
 //     let body = &coin_flip_party2_first_message;
 
 //     let (coin_flip_party1_second_message, rotation_party1_first_message): (
-//         coin_flip_optimal_rounds::Party1SecondMessage<GE>,
-//         party1::RotationParty1Message1,
+//         coin_flip_optimal_rounds::Party1SecondMessage,
+//         RotationParty1Message1,
 //     ) = requests::postb(
 //         client_shim,
 //         &format!("{}/{}/second", ROT_PATH_PRE, id.clone()),
@@ -45,8 +47,10 @@
 //     let result_masterkey2_new = wallet.private_share.master_key.rotate_first_message(
 //         &random2,
 //         &rotation_party1_first_message,
-//         SALT_STRING,
 //     );
+
+
+
 //     if result_masterkey2_new.is_err() {
 //         panic!("rotation failed");
 //     }

@@ -4,6 +4,7 @@ pub mod err_handling;
 pub mod ffi;
 pub mod requests;
 pub mod tests;
+pub mod key_recover;
 
 use crate::ecdsa::PrivateShare;
 use kms::ecdsa::two_party::MasterKey2;

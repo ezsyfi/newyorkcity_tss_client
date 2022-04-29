@@ -71,41 +71,41 @@ fn main() {
                 network,
                 hashes.join("\n")
             );
+        } else if matches.is_present("backup") {
+            let escrow = escrow::Escrow::load();
+
+            println!("Backup private share pending (it can take some time)...");
+
+            let start = Instant::now();
+            wallet.backup(escrow);
+
+            println!(
+                "Backup key saved in escrow (Took: {})",
+                TimeFormat(start.elapsed())
+            );
+        } else if matches.is_present("verify") {
+            let escrow = escrow::Escrow::load();
+
+            println!("verify encrypted backup (it can take some time)...");
+
+            let start = Instant::now();
+            wallet.verify_backup(escrow);
+
+            println!(" (Took: {})", TimeFormat(start.elapsed()));
+        } else if matches.is_present("restore") {
+            let escrow = escrow::Escrow::load();
+
+            println!("backup recovery in process 📲 (it can take some time)...");
+
+            let start = Instant::now();
+            wallet::Wallet::recover_and_save_share(escrow, &network, &client_shim);
+
+            println!(
+                " Backup recovered 💾(Took: {})",
+                TimeFormat(start.elapsed())
+            );
         }
-        // else if matches.is_present("backup") {
-        //     let escrow = escrow::Escrow::load();
-
-        //     println!("Backup private share pending (it can take some time)...");
-
-        //     let start = Instant::now();
-        //     wallet.backup(escrow);
-
-        //     println!(
-        //         "Backup key saved in escrow (Took: {})",
-        //         TimeFormat(start.elapsed())
-        //     );
-        // } else if matches.is_present("verify") {
-        //     let escrow = escrow::Escrow::load();
-
-        //     println!("verify encrypted backup (it can take some time)...");
-
-        //     let start = Instant::now();
-        //     wallet.verify_backup(escrow);
-
-        //     println!(" (Took: {})", TimeFormat(start.elapsed()));
-        // } else if matches.is_present("restore") {
-        //     let escrow = escrow::Escrow::load();
-
-        //     println!("backup recovery in process 📲 (it can take some time)...");
-
-        //     let start = Instant::now();
-        //     wallet::Wallet::recover_and_save_share(escrow, &network, &client_shim);
-
-        //     println!(
-        //         " Backup recovered 💾(Took: {})",
-        //         TimeFormat(start.elapsed())
-        //     );
-        // } else if matches.is_present("rotate") {
+        // else if matches.is_present("rotate") {
         //     println!("Rotating secret shares");
 
         //     let start = Instant::now();

@@ -4,9 +4,9 @@ use two_party_ecdsa::curv::{elliptic::curves::traits::ECPoint, BigInt, PK};
 
 use kms::ecdsa::two_party::MasterKey2;
 
+use crate::dto::btc::{BlockCypherAddress, UtxoAggregator, BtcBalanceAggregator};
 use crate::ecdsa::PrivateShare;
 use crate::utilities::derive_new_key;
-use crate::utilities::dto::{BlockCypherAddress, BtcBalanceAggregator, UtxoAggregator};
 
 pub const BTC_TESTNET: &str = "testnet";
 pub const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
