@@ -13,6 +13,7 @@ pub mod eth;
 pub mod utilities;
 pub mod wallet;
 pub mod dto;
+pub mod rotation;
 
 // pub mod eddsa;
 // pub mod schnorr;
