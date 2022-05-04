@@ -1,8 +1,8 @@
+use crate::dto::ecdsa::PrivateShare;
 use crate::utilities::requests::ClientShim;
 
 use super::super::utilities::requests;
 use super::super::wallet;
-use super::types::PrivateShare;
 use curv::cryptographic_primitives::twoparty::coin_flip_optimal_rounds;
 use curv::elliptic::curves::secp256_k1::GE;
 

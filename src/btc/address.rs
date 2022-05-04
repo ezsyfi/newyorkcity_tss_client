@@ -1,5 +1,4 @@
-use crate::dto::ecdsa::MKPosAddressDto;
-use crate::ecdsa::PrivateShare;
+use crate::dto::ecdsa::{MKPosAddressDto, PrivateShare};
 use crate::utilities::derive_new_key;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use std::ffi::{CStr, CString};

@@ -7,7 +7,10 @@ pub mod ffi_utils {
         os::raw::c_char,
     };
 
-    use crate::{dto::ecdsa::MKPosDto, ecdsa::PrivateShare, utilities::requests::ClientShim};
+    use crate::{
+        dto::ecdsa::{MKPosDto, PrivateShare},
+        utilities::requests::ClientShim,
+    };
 
     pub fn get_client_shim_from_raw(
         c_endpoint: *const c_char,

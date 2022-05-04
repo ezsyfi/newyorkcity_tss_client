@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::dto::ecdsa::MKPosDto;
+use crate::dto::ecdsa::PrivateShare;
 use crate::dto::eth::{EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp};
 use crate::ecdsa::sign::sign;
-use crate::ecdsa::PrivateShare;
 use crate::eth::transaction::Transaction;
 use crate::eth::utils::pubkey_to_eth_address;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};

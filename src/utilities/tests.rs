@@ -1,6 +1,6 @@
 use serde_json::json;
 
-use crate::ecdsa::PrivateShare;
+use crate::dto::ecdsa::PrivateShare;
 use std::fs;
 
 pub const TEST_WALLET_FILENAME: &str = "test-assets/wallet.json";

@@ -1,8 +1,8 @@
 use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
 use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_key};
 use crate::dto::btc::UtxoAggregator;
-use crate::dto::ecdsa::{MKPosAddressDto, MKPosDto};
-use crate::ecdsa::{sign, PrivateShare};
+use crate::dto::ecdsa::{MKPosAddressDto, MKPosDto, PrivateShare};
+use crate::ecdsa::sign;
 use crate::utilities::derive_new_key;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::ffi::ffi_utils::{

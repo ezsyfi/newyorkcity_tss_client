@@ -6,7 +6,7 @@ use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 
 use crate::dto::btc::{BlockCypherAddress, BtcBalanceAggregator, UtxoAggregator};
-use crate::ecdsa::PrivateShare;
+use crate::dto::ecdsa::PrivateShare;
 use crate::utilities::derive_new_key;
 
 pub const BTC_TESTNET: &str = "testnet";

@@ -9,7 +9,7 @@ mod btc_test_suite {
                 BTC_TESTNET,
             },
         },
-        ecdsa::PrivateShare,
+        dto::ecdsa::PrivateShare,
         utilities::{derive_new_key, tests::get_test_private_share},
     };
     use anyhow::Result;
@@ -119,7 +119,7 @@ mod eth_test_suite {
     use web3::types::U256;
 
     use crate::{
-        ecdsa::PrivateShare,
+        dto::ecdsa::PrivateShare,
         eth::utils::{
             get_all_addresses, get_all_addresses_balance, pubkey_to_eth_address, wei_to_eth,
         },

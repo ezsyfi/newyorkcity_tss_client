@@ -7,7 +7,6 @@ use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
 use serde_json::{self};
 use std::fs;
-use uuid::Uuid;
 use web3::types::H256;
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
@@ -16,7 +15,7 @@ use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
 use crate::dto::btc::{BlockCypherRawTx, UtxoAggregator};
-use crate::dto::ecdsa::MKPosDto;
+use crate::dto::ecdsa::{MKPosDto, PrivateShare};
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::pubkey_to_eth_address;
@@ -27,7 +26,6 @@ use crate::utilities::tests::RINKEBY_TEST_API;
 use super::btc;
 
 use super::ecdsa;
-use super::ecdsa::types::PrivateShare;
 use super::escrow;
 use super::utilities::requests;
 use std::collections::HashMap;
@@ -48,7 +46,7 @@ pub struct Wallet {
 
 impl Wallet {
     pub fn new(client_shim: &ClientShim, net: &str, c_type: &str) -> Wallet {
-        let id = Uuid::new_v4().to_string();
+        // let id = Uuid::new_v4().to_string();
         let private_share = match ecdsa::get_master_key(client_shim) {
             Ok(p) => p,
             Err(e) => panic!("{}", e),
@@ -58,7 +56,7 @@ impl Wallet {
         let addresses_derivation_map = HashMap::new();
 
         Wallet {
-            id,
+            id: private_share.id.clone(),
             coin_type: c_type.to_owned(),
             network: net.to_owned(),
             private_share,
@@ -151,11 +149,11 @@ impl Wallet {
         let pos_old = if pos_old < 10 { 10 } else { pos_old };
         //TODO: temporary, server will keep updated pos, to do so we need to send update to server for every get_new_address
 
-        let id = Uuid::new_v4().to_string();
+        // let id = Uuid::new_v4().to_string();
         let addresses_derivation_map = HashMap::new(); //TODO: add a fucntion to recreate
 
         let new_wallet = Wallet {
-            id,
+            id: key_id.clone(),
             coin_type: "btc".to_owned(),
             network: net.to_owned(),
             private_share: PrivateShare {
