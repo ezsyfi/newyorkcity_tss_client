@@ -68,7 +68,7 @@ mod btc_test_suite {
     #[test]
     fn test_select_tx_in() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let unspent_list = select_tx_in(0.0, 0, &private_share)?;
+        let unspent_list = select_tx_in(0, &private_share)?;
         assert!(!unspent_list.is_empty());
         Ok(())
     }

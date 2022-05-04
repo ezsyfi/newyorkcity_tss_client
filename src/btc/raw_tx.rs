@@ -45,7 +45,7 @@ pub fn create_raw_tx(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<Option<BtcRawTxFFIResp>> {
-    let selected = select_tx_in(sent_amount, last_derived_pos, private_share)?;
+    let selected = select_tx_in(last_derived_pos, private_share)?;
 
     /* Specify "vin" array aka Transaction Inputs */
     let txs_in: Vec<TxIn> = selected
@@ -171,7 +171,6 @@ pub fn create_raw_tx(
 // TODO: handle fees
 // Select all txin enough to pay the amount
 pub fn select_tx_in(
-    sent_amount: f64,
     last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Result<Vec<UtxoAggregator>> {
