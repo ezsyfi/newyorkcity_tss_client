@@ -67,7 +67,7 @@ pub fn rotate_master_key(wallet: wallet::Wallet, client_shim: &ClientShim) -> wa
         last_derived_pos: wallet.last_derived_pos,
         addresses_derivation_map,
     };
-    wallet_after_rotate.derived();
+    wallet_after_rotate.derived().unwrap();
 
     wallet_after_rotate
 }

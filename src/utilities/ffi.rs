@@ -8,8 +8,7 @@ pub mod ffi_utils {
     };
 
     use crate::{
-        ecdsa::PrivateShare,
-        utilities::{dto::MKPosDto, requests::ClientShim},
+        ecdsa::PrivateShare, utilities::requests::ClientShim, dto::ecdsa::MKPosDto,
     };
 
     pub fn get_client_shim_from_raw(

@@ -1,5 +1,4 @@
 pub mod a_requests;
-pub mod dto;
 pub mod err_handling;
 pub mod ffi;
 pub mod requests;
