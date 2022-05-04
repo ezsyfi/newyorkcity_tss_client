@@ -15,12 +15,12 @@ use centipede::juggling::segmentation::Msegmentation;
 use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
+use crate::dto::btc::{BlockCypherRawTx, UtxoAggregator};
 use crate::dto::ecdsa::MKPosDto;
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::pubkey_to_eth_address;
 use crate::utilities::derive_new_key;
-use crate::dto::btc::{BlockCypherRawTx, UtxoAggregator};
 use crate::utilities::requests::ClientShim;
 use crate::utilities::tests::RINKEBY_TEST_API;
 

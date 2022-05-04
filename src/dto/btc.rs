@@ -45,7 +45,6 @@ pub struct BlockCypherTxRef {
     pub confirmed: String,
 }
 
-
 #[derive(Serialize, Deserialize)]
 pub struct BlockCypherRawTx {
     pub tx: String,

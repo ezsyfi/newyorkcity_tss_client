@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use crate::dto::ecdsa::MKPosDto;
-use crate::dto::eth::{EthTxParamsReqBody, EthTxParamsResp, EthSendTxReqBody, EthSendTxResp};
+use crate::dto::eth::{EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp};
 use crate::ecdsa::sign::sign;
 use crate::ecdsa::PrivateShare;
 use crate::eth::transaction::Transaction;

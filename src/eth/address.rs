@@ -4,11 +4,12 @@ use std::{
 };
 
 use crate::{
+    dto::ecdsa::MKPosAddressDto,
     ecdsa::PrivateShare,
     utilities::{
         derive_new_key,
         err_handling::{error_to_c_string, ErrorFFIKind},
-    }, dto::ecdsa::MKPosAddressDto,
+    },
 };
 
 use super::utils::pubkey_to_eth_address;
