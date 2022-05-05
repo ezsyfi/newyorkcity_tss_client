@@ -10,9 +10,10 @@ const ESCROW_SK_FILENAME: &str = "escrow/escrow-sk.json";
 pub const SEGMENT_SIZE: usize = 8;
 pub const NUM_SEGMENTS: usize = 32;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Escrow {
-    secret: FE,
-    public: GE,
+    pub secret: FE,
+    pub public: GE,
 }
 
 impl Escrow {

@@ -52,7 +52,6 @@ fn main() {
         wallet.save();
         println!("Network: [{}], Wallet saved to disk", &network);
 
-        let _escrow = escrow::Escrow::new();
         println!("Network: [{}], Escrow initiated", &network);
     } else if let Some(matches) = matches.subcommand_matches("wallet") {
         let mut wallet: wallet::Wallet = wallet::Wallet::load();
@@ -72,12 +71,9 @@ fn main() {
                 hashes.join("\n")
             );
         } else if matches.is_present("backup") {
-            let escrow = escrow::Escrow::load();
-
             println!("Backup private share pending (it can take some time)...");
-
             let start = Instant::now();
-            wallet.backup(escrow);
+            wallet.backup();
 
             println!(
                 "Backup key saved in escrow (Took: {})",

@@ -16,6 +16,7 @@ use kms::chain_code::two_party::party2::ChainCode2;
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
 use crate::dto::btc::{BlockCypherRawTx, UtxoAggregator};
 use crate::dto::ecdsa::{MKPosDto, PrivateShare};
+use crate::ecdsa::recover::backup_client_mk;
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::pubkey_to_eth_address;
@@ -69,30 +70,11 @@ impl Wallet {
         ecdsa::rotate_master_key(self, client_shim)
     }
 
-    pub fn backup(&self, escrow_service: escrow::Escrow) {
-        let g: GE = ECPoint::generator();
-        let y = escrow_service.get_public_key();
-        let (segments, encryptions) = self.private_share.master_key.private.to_encrypted_segment(
-            escrow::SEGMENT_SIZE,
-            escrow::NUM_SEGMENTS,
-            &y,
-            &g,
-        );
-
-        let proof = Proof::prove(&segments, &encryptions, &g, &y, &escrow::SEGMENT_SIZE);
-
-        let client_backup_json = serde_json::to_string(&(
-            encryptions,
-            proof,
-            self.private_share.master_key.public.clone(),
-            self.private_share.master_key.chain_code.clone(),
-            self.private_share.id.clone(),
-        ))
-        .unwrap();
-
+    pub fn backup(&self) {
+        let client_backup_json = backup_client_mk(&self.private_share).unwrap();
         fs::write(BACKUP_FILENAME, client_backup_json).expect("Unable to save client backup!");
 
-        debug!("(wallet id: {}) Backup wallet with escrow", self.id);
+        debug!("(wallet id: {}) Backup wallet with escrow", &self.id);
     }
 
     pub fn verify_backup(&self, escrow_service: escrow::Escrow) {
