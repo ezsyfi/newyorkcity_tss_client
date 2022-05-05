@@ -11,11 +11,11 @@ use kms::ecdsa::two_party::*;
 use multi_party_ecdsa::protocols::two_party_ecdsa::lindell_2017::*;
 use zk_paillier::zkproofs::SALT_STRING;
 
+use crate::dto::ecdsa::PrivateShare;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::requests::ClientShim;
 
 use super::super::utilities::requests;
-use super::types::PrivateShare;
 
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;

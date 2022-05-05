@@ -7,6 +7,7 @@ extern crate serde_json;
 extern crate log;
 
 pub mod btc;
+pub mod dto;
 pub mod ecdsa;
 pub mod escrow;
 pub mod eth;

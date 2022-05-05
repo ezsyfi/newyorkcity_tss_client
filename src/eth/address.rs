@@ -4,10 +4,9 @@ use std::{
 };
 
 use crate::{
-    ecdsa::PrivateShare,
+    dto::ecdsa::{MKPosAddressDto, PrivateShare},
     utilities::{
         derive_new_key,
-        dto::MKPosAddressDto,
         err_handling::{error_to_c_string, ErrorFFIKind},
     },
 };

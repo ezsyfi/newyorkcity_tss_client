@@ -1,8 +1,8 @@
+use crate::dto::ecdsa::PrivateShare;
 use crate::utilities::requests::ClientShim;
 
 use super::super::utilities::requests;
 use super::super::wallet;
-use super::types::PrivateShare;
 use curv::cryptographic_primitives::twoparty::coin_flip_optimal_rounds;
 use curv::elliptic::curves::secp256_k1::GE;
 
@@ -67,7 +67,7 @@ pub fn rotate_master_key(wallet: wallet::Wallet, client_shim: &ClientShim) -> wa
         last_derived_pos: wallet.last_derived_pos,
         addresses_derivation_map,
     };
-    wallet_after_rotate.derived();
+    wallet_after_rotate.derived().unwrap();
 
     wallet_after_rotate
 }

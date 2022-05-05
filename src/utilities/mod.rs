@@ -1,11 +1,10 @@
 pub mod a_requests;
-pub mod dto;
 pub mod err_handling;
 pub mod ffi;
 pub mod requests;
 pub mod tests;
 
-use crate::ecdsa::PrivateShare;
+use crate::dto::ecdsa::PrivateShare;
 use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 

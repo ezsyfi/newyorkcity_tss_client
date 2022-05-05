@@ -1,8 +1,9 @@
 use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
 use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_key};
-use crate::ecdsa::{sign, PrivateShare};
+use crate::dto::btc::UtxoAggregator;
+use crate::dto::ecdsa::{MKPosAddressDto, MKPosDto, PrivateShare};
+use crate::ecdsa::sign;
 use crate::utilities::derive_new_key;
-use crate::utilities::dto::{MKPosAddressDto, MKPosDto, UtxoAggregator};
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::ffi::ffi_utils::{
     get_addresses_derivation_map_from_raw, get_client_shim_from_raw, get_private_share_from_raw,
@@ -44,7 +45,7 @@ pub fn create_raw_tx(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<Option<BtcRawTxFFIResp>> {
-    let selected = select_tx_in(sent_amount, last_derived_pos, private_share)?;
+    let selected = select_tx_in(last_derived_pos, private_share)?;
 
     /* Specify "vin" array aka Transaction Inputs */
     let txs_in: Vec<TxIn> = selected
@@ -170,7 +171,6 @@ pub fn create_raw_tx(
 // TODO: handle fees
 // Select all txin enough to pay the amount
 pub fn select_tx_in(
-    sent_amount: f64,
     last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Result<Vec<UtxoAggregator>> {

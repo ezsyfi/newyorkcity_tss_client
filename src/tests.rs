@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod btc_test_suite {
 
-    use std::collections::HashMap;
-
     use crate::{
         btc::{
             raw_tx::select_tx_in,
@@ -11,13 +9,8 @@ mod btc_test_suite {
                 BTC_TESTNET,
             },
         },
-        ecdsa::PrivateShare,
-        utilities::{
-            derive_new_key,
-            requests::ClientShim,
-            tests::{get_test_private_share, mock_sign_in, TEST_WALLET_FILENAME},
-        },
-        wallet::Wallet,
+        dto::ecdsa::PrivateShare,
+        utilities::{derive_new_key, tests::get_test_private_share},
     };
     use anyhow::Result;
     use bitcoin::Network;
@@ -75,7 +68,7 @@ mod btc_test_suite {
     #[test]
     fn test_select_tx_in() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let unspent_list = select_tx_in(0.0, 0, &private_share)?;
+        let unspent_list = select_tx_in(0, &private_share)?;
         assert!(!unspent_list.is_empty());
         Ok(())
     }
@@ -126,7 +119,7 @@ mod eth_test_suite {
     use web3::types::U256;
 
     use crate::{
-        ecdsa::PrivateShare,
+        dto::ecdsa::PrivateShare,
         eth::utils::{
             get_all_addresses, get_all_addresses_balance, pubkey_to_eth_address, wei_to_eth,
         },

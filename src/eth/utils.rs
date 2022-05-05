@@ -11,7 +11,7 @@ use web3::{
     Web3,
 };
 
-use crate::ecdsa::PrivateShare;
+use crate::dto::ecdsa::PrivateShare;
 
 pub async fn get_all_addresses_balance(
     web3_connection_url: &str,
