@@ -7,6 +7,7 @@ use crate::utilities::derive_new_key;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::ffi::ffi_utils::{
     get_addresses_derivation_map_from_raw, get_client_shim_from_raw, get_private_share_from_raw,
+    get_str_from_c_char,
 };
 use crate::utilities::requests::ClientShim;
 
@@ -18,7 +19,7 @@ use curv::BigInt;
 use itertools::Itertools;
 
 use std::collections::HashMap;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::os::raw::c_char;
 
 use bitcoin::consensus::encode::serialize;
@@ -206,50 +207,29 @@ pub extern "C" fn get_raw_btc_tx(
     c_private_share_json: *const c_char,
     c_addresses_derivation_map: *const c_char,
 ) -> *mut c_char {
-    let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
-    let to_address = match raw_to_address.to_str() {
+    let to_address = match get_str_from_c_char(c_to_address, "to_address") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "to_address".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
     let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "client_shim".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
     let private_share = match get_private_share_from_raw(c_private_share_json) {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E104 {
-                msg: "private_share".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
     let addresses_derivation_map =
         match get_addresses_derivation_map_from_raw(c_addresses_derivation_map) {
             Ok(s) => s,
-            Err(e) => {
-                return error_to_c_string(ErrorFFIKind::E104 {
-                    msg: "addresses_derivation_map".to_owned(),
-                    e: e.to_string(),
-                })
-            }
+            Err(e) => return error_to_c_string(e),
         };
 
     let raw_tx_opt = match create_raw_tx(
-        to_address,
+        &to_address,
         c_amount_btc,
         &client_shim,
         c_last_derived_pos,

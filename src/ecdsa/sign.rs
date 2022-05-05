@@ -9,10 +9,11 @@ use super::super::utilities::requests;
 use crate::dto::ecdsa::SignSecondMsgRequest;
 use crate::utilities::err_handling::error_to_c_string;
 use crate::utilities::err_handling::ErrorFFIKind;
+use crate::utilities::ffi::ffi_utils::get_str_from_c_char;
 use crate::utilities::requests::ClientShim;
 
 // iOS bindings
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::os::raw::c_char;
 
 pub fn sign(
@@ -96,70 +97,34 @@ pub extern "C" fn sign_message(
     c_y_pos: i32,
     c_id: *const c_char,
 ) -> *mut c_char {
-    let raw_endpoint = unsafe { CStr::from_ptr(c_endpoint) };
-    let endpoint = match raw_endpoint.to_str() {
+    let endpoint = match get_str_from_c_char(c_endpoint, "endpoint") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "endpoint".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
-    let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
-    let auth_token = match raw_auth_token.to_str() {
+    let auth_token = match get_str_from_c_char(c_auth_token, "auth_token") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "auth_token".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
-    let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
-    let user_id = match user_id_json.to_str() {
+    let user_id = match get_str_from_c_char(c_user_id, "user_id") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "user_id".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
-    let raw_message_hex = unsafe { CStr::from_ptr(c_message_le_hex) };
-    let message_hex = match raw_message_hex.to_str() {
+    let message_hex = match get_str_from_c_char(c_message_le_hex, "message_hex") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "message_hex".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
-    let raw_master_key_json = unsafe { CStr::from_ptr(c_master_key_json) };
-    let master_key_json = match raw_master_key_json.to_str() {
+    let master_key_json = match get_str_from_c_char(c_master_key_json, "master_key_json") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "master_key_json".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
-    let raw_id = unsafe { CStr::from_ptr(c_id) };
-    let id = match raw_id.to_str() {
+    let id = match get_str_from_c_char(c_id, "id") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "id".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
     let x: BigInt = BigInt::from(c_x_pos);
@@ -167,18 +132,29 @@ pub extern "C" fn sign_message(
     let y: BigInt = BigInt::from(c_y_pos);
 
     let client_shim = ClientShim::new(
-        endpoint.to_owned(),
-        Some(auth_token.to_owned()),
-        user_id.to_owned(),
+        endpoint,
+        Some(auth_token),
+        user_id,
     );
 
-    let mk: MasterKey2 = serde_json::from_str(master_key_json).unwrap();
+    let mk: MasterKey2 = match serde_json::from_str(&master_key_json) {
+        Ok(s) => s,
+        Err(e) => return error_to_c_string(ErrorFFIKind::E104 {
+            msg: "sign_mk".to_owned(),
+            e: e.to_string(),
+        }),
+    };
 
     let mk_child: MasterKey2 = mk.get_child(vec![x.clone(), y.clone()]);
+    let message: BigInt = match serde_json::from_str(&message_hex) {
+        Ok(s) => s,
+        Err(e) => return error_to_c_string(ErrorFFIKind::E104 {
+            msg: "sign_message".to_owned(),
+            e: e.to_string(),
+        }),
+    };
 
-    let message: BigInt = serde_json::from_str(message_hex).unwrap();
-
-    let sig = match sign(&client_shim, message, &mk_child, x, y, id) {
+    let sig = match sign(&client_shim, message, &mk_child, x, y, &id) {
         Ok(s) => s,
         Err(e) => {
             return error_to_c_string(ErrorFFIKind::E103 {

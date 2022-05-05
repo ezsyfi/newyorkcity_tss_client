@@ -139,23 +139,13 @@ pub extern "C" fn get_raw_eth_tx(
 
     let private_share = match get_private_share_from_raw(c_private_share_json) {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E104 {
-                msg: "private_share".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
     let addresses_derivation_map =
         match get_addresses_derivation_map_from_raw(c_addresses_derivation_map) {
             Ok(s) => s,
-            Err(e) => {
-                return error_to_c_string(ErrorFFIKind::E104 {
-                    msg: "addresses_derivation_map".to_owned(),
-                    e: e.to_string(),
-                })
-            }
+            Err(e) => return error_to_c_string(e),
         };
 
     let tx_hash = match sign_and_send(
