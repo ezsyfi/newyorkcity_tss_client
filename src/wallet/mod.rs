@@ -11,12 +11,11 @@ use web3::types::H256;
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
-use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
 use crate::dto::btc::{BlockCypherRawTx, UtxoAggregator};
 use crate::dto::ecdsa::{MKPosDto, PrivateShare};
-use crate::ecdsa::recover::backup_client_mk;
+use crate::ecdsa::recover::{backup_client_mk, verify_client_backup};
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::pubkey_to_eth_address;
@@ -78,25 +77,9 @@ impl Wallet {
     }
 
     pub fn verify_backup(&self, escrow_service: escrow::Escrow) {
-        let g: GE = ECPoint::generator();
         let y = escrow_service.get_public_key();
-
         let data = fs::read_to_string(BACKUP_FILENAME).expect("Unable to load client backup!");
-        let (encryptions, proof, client_public, _, _): (
-            Helgamalsegmented,
-            Proof,
-            Party2Public,
-            ChainCode2,
-            String,
-        ) = serde_json::from_str(&data).unwrap();
-        let verify = proof.verify(
-            &encryptions,
-            &g,
-            &y,
-            &client_public.p2,
-            &escrow::SEGMENT_SIZE,
-        );
-        match verify {
+        match verify_client_backup(y, &data) {
             Ok(_x) => println!("backup verified 🍻"),
             Err(_e) => println!("Backup was not verified correctly 😲"),
         }
