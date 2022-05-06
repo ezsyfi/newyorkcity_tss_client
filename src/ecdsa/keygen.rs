@@ -112,7 +112,6 @@ pub extern "C" fn get_client_master_key(
     c_auth_token: *const c_char,
     c_user_id: *const c_char,
 ) -> *mut c_char {
-
     let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
         Ok(s) => s,
         Err(e) => return error_to_c_string(e),

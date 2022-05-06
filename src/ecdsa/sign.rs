@@ -121,22 +121,25 @@ pub extern "C" fn sign_message(
     let x: BigInt = BigInt::from(c_x_pos);
     let y: BigInt = BigInt::from(c_y_pos);
 
-
     let mk: MasterKey2 = match serde_json::from_str(&master_key_json) {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(ErrorFFIKind::E104 {
-            msg: "sign_mk".to_owned(),
-            e: e.to_string(),
-        }),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E104 {
+                msg: "sign_mk".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let mk_child: MasterKey2 = mk.get_child(vec![x.clone(), y.clone()]);
     let message: BigInt = match serde_json::from_str(&message_hex) {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(ErrorFFIKind::E104 {
-            msg: "sign_message".to_owned(),
-            e: e.to_string(),
-        }),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E104 {
+                msg: "sign_message".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
 
     let sig = match sign(&client_shim, message, &mk_child, x, y, &id) {

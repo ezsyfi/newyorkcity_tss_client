@@ -7,17 +7,20 @@ use super::super::utilities::requests;
 use curv::cryptographic_primitives::twoparty::coin_flip_optimal_rounds;
 use curv::elliptic::curves::secp256_k1::GE;
 
+use anyhow::{anyhow, Result};
 use kms::ecdsa::two_party::*;
 use kms::rotation::two_party::party2::Rotation2;
 use zk_paillier::zkproofs::SALT_STRING;
-use anyhow::{anyhow, Result};
 
 use std::ffi::CString;
 use std::os::raw::c_char;
 
 const ROT_PATH_PRE: &str = "ecdsa/rotate";
 
-pub fn rotate_private_share(private_share: PrivateShare, client_shim: &ClientShim) -> Result<PrivateShare> {
+pub fn rotate_private_share(
+    private_share: PrivateShare,
+    client_shim: &ClientShim,
+) -> Result<PrivateShare> {
     let id = &private_share.id.clone();
     let coin_flip_party1_first_message: coin_flip_optimal_rounds::Party1FirstMessage<GE> =
         match requests::post(client_shim, &format!("{}/{}/first", ROT_PATH_PRE, id)) {
@@ -28,10 +31,12 @@ pub fn rotate_private_share(private_share: PrivateShare, client_shim: &ClientShi
                 }
             },
             Err(e) => {
-                return Err(anyhow!("coin flip p1 first msg request for rotating failed:\n {}", e));
+                return Err(anyhow!(
+                    "coin flip p1 first msg request for rotating failed:\n {}",
+                    e
+                ));
             }
         };
-            
 
     let coin_flip_party2_first_message =
         Rotation2::key_rotate_first_message(&coin_flip_party1_first_message);
@@ -53,7 +58,10 @@ pub fn rotate_private_share(private_share: PrivateShare, client_shim: &ClientShi
             }
         },
         Err(e) => {
-            return Err(anyhow!("coin flip p1 second msg request for rotating failed:\n {}", e));
+            return Err(anyhow!(
+                "coin flip p1 second msg request for rotating failed:\n {}",
+                e
+            ));
         }
     };
 
@@ -79,7 +87,6 @@ pub fn rotate_private_share(private_share: PrivateShare, client_shim: &ClientShi
     Ok(private_share)
 }
 
-
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 pub extern "C" fn get_rotated_client_master_key(
@@ -98,15 +105,16 @@ pub extern "C" fn get_rotated_client_master_key(
         Err(e) => return error_to_c_string(e),
     };
 
-    let rotated_private_share: PrivateShare = match rotate_private_share(private_share, &client_shim) {
-        Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E103 {
-                msg: "rotated_private_share".to_owned(),
-                e: e.to_string(),
-            })
-        }
-    };
+    let rotated_private_share: PrivateShare =
+        match rotate_private_share(private_share, &client_shim) {
+            Ok(s) => s,
+            Err(e) => {
+                return error_to_c_string(ErrorFFIKind::E103 {
+                    msg: "rotated_private_share".to_owned(),
+                    e: e.to_string(),
+                })
+            }
+        };
 
     let private_share_json = match serde_json::to_string(&rotated_private_share) {
         Ok(share) => share,

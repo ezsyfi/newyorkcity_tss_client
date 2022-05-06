@@ -1,7 +1,7 @@
 use anyhow::Result;
-use centipede::Errors;
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
+use centipede::Errors;
 use curv::arithmetic::{Converter, Modulo};
 use curv::elliptic::curves::secp256_k1::{FE, GE};
 use curv::elliptic::curves::traits::{ECPoint, ECScalar};
@@ -88,27 +88,29 @@ pub extern "C" fn backup(c_private_share_json: *const c_char) -> *mut c_char {
 }
 
 #[no_mangle]
-pub extern "C" fn verify_backup(c_escrow_pubkey: *const c_char, c_backup_data: *const c_char) -> *mut c_char {
-    let backup_data = match get_str_from_c_char(c_backup_data, "backup_data")
-    {
+pub extern "C" fn verify_backup(
+    c_escrow_pubkey: *const c_char,
+    c_backup_data: *const c_char,
+) -> *mut c_char {
+    let backup_data = match get_str_from_c_char(c_backup_data, "backup_data") {
         Ok(s) => s,
         Err(e) => return error_to_c_string(e),
     };
 
-    let escrow_pubkey = match get_str_from_c_char(c_escrow_pubkey, "escrow_pubkey")
-    {
+    let escrow_pubkey = match get_str_from_c_char(c_escrow_pubkey, "escrow_pubkey") {
         Ok(s) => s,
         Err(e) => return error_to_c_string(e),
     };
 
     let y = match serde_json::from_str::<GE>(&escrow_pubkey) {
         Ok(s) => s,
-        Err(e) => return error_to_c_string(ErrorFFIKind::E103 {
-            msg: "escrow_pubkey".to_owned(),
-            e: e.to_string(),
-        }),
+        Err(e) => {
+            return error_to_c_string(ErrorFFIKind::E103 {
+                msg: "escrow_pubkey".to_owned(),
+                e: e.to_string(),
+            })
+        }
     };
-    
 
     match verify_client_backup(y, &backup_data) {
         Ok(_x) => match CString::new("success") {
@@ -126,8 +128,6 @@ pub extern "C" fn verify_backup(c_escrow_pubkey: *const c_char, c_backup_data: *
             }),
         },
     }
-
-    
 }
 
 #[no_mangle]
