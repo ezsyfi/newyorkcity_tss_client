@@ -9,6 +9,7 @@ use super::super::utilities::requests;
 use crate::dto::ecdsa::SignSecondMsgRequest;
 use crate::utilities::err_handling::error_to_c_string;
 use crate::utilities::err_handling::ErrorFFIKind;
+use crate::utilities::ffi::ffi_utils::get_client_shim_from_raw;
 use crate::utilities::ffi::ffi_utils::get_str_from_c_char;
 use crate::utilities::requests::ClientShim;
 
@@ -97,17 +98,7 @@ pub extern "C" fn sign_message(
     c_y_pos: i32,
     c_id: *const c_char,
 ) -> *mut c_char {
-    let endpoint = match get_str_from_c_char(c_endpoint, "endpoint") {
-        Ok(s) => s,
-        Err(e) => return error_to_c_string(e),
-    };
-
-    let auth_token = match get_str_from_c_char(c_auth_token, "auth_token") {
-        Ok(s) => s,
-        Err(e) => return error_to_c_string(e),
-    };
-
-    let user_id = match get_str_from_c_char(c_user_id, "user_id") {
+    let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
         Ok(s) => s,
         Err(e) => return error_to_c_string(e),
     };
@@ -128,14 +119,8 @@ pub extern "C" fn sign_message(
     };
 
     let x: BigInt = BigInt::from(c_x_pos);
-
     let y: BigInt = BigInt::from(c_y_pos);
 
-    let client_shim = ClientShim::new(
-        endpoint,
-        Some(auth_token),
-        user_id,
-    );
 
     let mk: MasterKey2 = match serde_json::from_str(&master_key_json) {
         Ok(s) => s,

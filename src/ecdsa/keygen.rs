@@ -13,7 +13,7 @@ use zk_paillier::zkproofs::SALT_STRING;
 
 use crate::dto::ecdsa::PrivateShare;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
-use crate::utilities::ffi::ffi_utils::get_str_from_c_char;
+use crate::utilities::ffi::ffi_utils::get_client_shim_from_raw;
 use crate::utilities::requests::ClientShim;
 
 use super::super::utilities::requests;
@@ -23,7 +23,7 @@ use std::os::raw::c_char;
 
 const KG_PATH_PRE: &str = "ecdsa/keygen";
 
-pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
+pub fn get_private_share(client_shim: &ClientShim) -> Result<PrivateShare> {
     let start = Instant::now();
     // Receive ECDH key exchange message from P1
     let (id, kg_party_one_first_message): (String, party_one::KeyGenFirstMsg) =
@@ -112,28 +112,13 @@ pub extern "C" fn get_client_master_key(
     c_auth_token: *const c_char,
     c_user_id: *const c_char,
 ) -> *mut c_char {
-    let endpoint = match get_str_from_c_char(c_endpoint, "endpoint") {
+
+    let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
         Ok(s) => s,
         Err(e) => return error_to_c_string(e),
     };
 
-    let auth_token = match get_str_from_c_char(c_auth_token, "auth_token") {
-        Ok(s) => s,
-        Err(e) => return error_to_c_string(e),
-    };
-
-    let user_id = match get_str_from_c_char(c_user_id, "user_id") {
-        Ok(s) => s,
-        Err(e) => return error_to_c_string(e),
-    };
-
-    let client_shim = ClientShim::new(
-        endpoint,
-        Some(auth_token),
-        user_id,
-    );
-
-    let private_share: PrivateShare = match get_master_key(&client_shim) {
+    let private_share: PrivateShare = match get_private_share(&client_shim) {
         Ok(s) => s,
         Err(e) => {
             return error_to_c_string(ErrorFFIKind::E103 {

@@ -47,7 +47,7 @@ pub struct Wallet {
 impl Wallet {
     pub fn new(client_shim: &ClientShim, net: &str, c_type: &str) -> Wallet {
         // let id = Uuid::new_v4().to_string();
-        let private_share = match ecdsa::get_master_key(client_shim) {
+        let private_share = match ecdsa::get_private_share(client_shim) {
             Ok(p) => p,
             Err(e) => panic!("{}", e),
         };
@@ -66,7 +66,20 @@ impl Wallet {
     }
 
     pub fn rotate(self, client_shim: &ClientShim) -> Self {
-        ecdsa::rotate_master_key(self, client_shim)
+        let rotated_private_share =
+            ecdsa::rotate_private_share(self.private_share, client_shim).unwrap();
+        let addresses_derivation_map = HashMap::new();
+        let mut wallet_after_rotate = Wallet {
+            id: self.id.clone(),
+            coin_type: self.coin_type.clone(),
+            network: self.network.clone(),
+            private_share: rotated_private_share,
+            last_derived_pos: self.last_derived_pos,
+            addresses_derivation_map,
+        };
+        wallet_after_rotate.derived().unwrap();
+
+        wallet_after_rotate
     }
 
     pub fn backup(&self) {
