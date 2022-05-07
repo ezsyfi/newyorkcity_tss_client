@@ -13,16 +13,17 @@ use zk_paillier::zkproofs::SALT_STRING;
 
 use crate::dto::ecdsa::PrivateShare;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
+use crate::utilities::ffi::ffi_utils::get_client_shim_from_raw;
 use crate::utilities::requests::ClientShim;
 
 use super::super::utilities::requests;
 
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::os::raw::c_char;
 
 const KG_PATH_PRE: &str = "ecdsa/keygen";
 
-pub fn get_master_key(client_shim: &ClientShim) -> Result<PrivateShare> {
+pub fn get_private_share(client_shim: &ClientShim) -> Result<PrivateShare> {
     let start = Instant::now();
     // Receive ECDH key exchange message from P1
     let (id, kg_party_one_first_message): (String, party_one::KeyGenFirstMsg) =
@@ -111,46 +112,12 @@ pub extern "C" fn get_client_master_key(
     c_auth_token: *const c_char,
     c_user_id: *const c_char,
 ) -> *mut c_char {
-    let raw_endpoint = unsafe { CStr::from_ptr(c_endpoint) };
-    let endpoint = match raw_endpoint.to_str() {
+    let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "endpoint".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
-    let raw_auth_token = unsafe { CStr::from_ptr(c_auth_token) };
-    let auth_token = match raw_auth_token.to_str() {
-        Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "auth_token".to_owned(),
-                e: e.to_string(),
-            })
-        }
-    };
-
-    let user_id_json = unsafe { CStr::from_ptr(c_user_id) };
-    let user_id = match user_id_json.to_str() {
-        Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "user_id".to_owned(),
-                e: e.to_string(),
-            })
-        }
-    };
-
-    let client_shim = ClientShim::new(
-        endpoint.to_owned(),
-        Some(auth_token.to_owned()),
-        user_id.to_owned(),
-    );
-
-    let private_share: PrivateShare = match get_master_key(&client_shim) {
+    let private_share: PrivateShare = match get_private_share(&client_shim) {
         Ok(s) => s,
         Err(e) => {
             return error_to_c_string(ErrorFFIKind::E103 {

@@ -11,11 +11,11 @@ use web3::types::H256;
 
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
-use kms::chain_code::two_party::party2::ChainCode2;
 
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
 use crate::dto::btc::{BlockCypherRawTx, UtxoAggregator};
 use crate::dto::ecdsa::{MKPosDto, PrivateShare};
+use crate::ecdsa::recover::{backup_client_mk, verify_client_backup};
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::pubkey_to_eth_address;
@@ -47,7 +47,7 @@ pub struct Wallet {
 impl Wallet {
     pub fn new(client_shim: &ClientShim, net: &str, c_type: &str) -> Wallet {
         // let id = Uuid::new_v4().to_string();
-        let private_share = match ecdsa::get_master_key(client_shim) {
+        let private_share = match ecdsa::get_private_share(client_shim) {
             Ok(p) => p,
             Err(e) => panic!("{}", e),
         };
@@ -66,55 +66,33 @@ impl Wallet {
     }
 
     pub fn rotate(self, client_shim: &ClientShim) -> Self {
-        ecdsa::rotate_master_key(self, client_shim)
+        let rotated_private_share =
+            ecdsa::rotate_private_share(self.private_share, client_shim).unwrap();
+        let addresses_derivation_map = HashMap::new();
+        let mut wallet_after_rotate = Wallet {
+            id: self.id.clone(),
+            coin_type: self.coin_type.clone(),
+            network: self.network.clone(),
+            private_share: rotated_private_share,
+            last_derived_pos: self.last_derived_pos,
+            addresses_derivation_map,
+        };
+        wallet_after_rotate.derived().unwrap();
+
+        wallet_after_rotate
     }
 
-    pub fn backup(&self, escrow_service: escrow::Escrow) {
-        let g: GE = ECPoint::generator();
-        let y = escrow_service.get_public_key();
-        let (segments, encryptions) = self.private_share.master_key.private.to_encrypted_segment(
-            escrow::SEGMENT_SIZE,
-            escrow::NUM_SEGMENTS,
-            &y,
-            &g,
-        );
-
-        let proof = Proof::prove(&segments, &encryptions, &g, &y, &escrow::SEGMENT_SIZE);
-
-        let client_backup_json = serde_json::to_string(&(
-            encryptions,
-            proof,
-            self.private_share.master_key.public.clone(),
-            self.private_share.master_key.chain_code.clone(),
-            self.private_share.id.clone(),
-        ))
-        .unwrap();
-
+    pub fn backup(&self) {
+        let client_backup_json = backup_client_mk(&self.private_share).unwrap();
         fs::write(BACKUP_FILENAME, client_backup_json).expect("Unable to save client backup!");
 
-        debug!("(wallet id: {}) Backup wallet with escrow", self.id);
+        debug!("(wallet id: {}) Backup wallet with escrow", &self.id);
     }
 
     pub fn verify_backup(&self, escrow_service: escrow::Escrow) {
-        let g: GE = ECPoint::generator();
         let y = escrow_service.get_public_key();
-
         let data = fs::read_to_string(BACKUP_FILENAME).expect("Unable to load client backup!");
-        let (encryptions, proof, client_public, _, _): (
-            Helgamalsegmented,
-            Proof,
-            Party2Public,
-            ChainCode2,
-            String,
-        ) = serde_json::from_str(&data).unwrap();
-        let verify = proof.verify(
-            &encryptions,
-            &g,
-            &y,
-            &client_public.p2,
-            &escrow::SEGMENT_SIZE,
-        );
-        match verify {
+        match verify_client_backup(y, &data) {
             Ok(_x) => println!("backup verified 🍻"),
             Err(_e) => println!("Backup was not verified correctly 😲"),
         }
