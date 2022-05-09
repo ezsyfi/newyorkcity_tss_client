@@ -30,7 +30,7 @@ pub extern "C" fn get_eth_addrs(
     let address = pubkey_to_eth_address(&mk);
 
     let mk_pos_address = MKPosAddressDto {
-        address: address.to_string(),
+        address: format!("{:?}", address),
         pos,
         mk,
     };
