@@ -12,8 +12,9 @@ use web3::types::H256;
 use centipede::juggling::proof_system::{Helgamalsegmented, Proof};
 use centipede::juggling::segmentation::Msegmentation;
 
+use crate::btc::raw_tx::select_tx_in;
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
-use crate::dto::btc::{BlockCypherRawTx, UtxoAggregator};
+use crate::dto::btc::{BlockCypherRawTx, BlockCypherTx};
 use crate::dto::ecdsa::{MKPosDto, PrivateShare};
 use crate::ecdsa::recover::{backup_client_mk, verify_client_backup};
 use crate::eth;
@@ -209,24 +210,31 @@ impl Wallet {
                     pos: change_address_payload.pos,
                 },
             );
-
+            self.last_derived_pos = &self.last_derived_pos + 1;
             let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
             let raw_tx = BlockCypherRawTx {
                 tx: raw_tx.raw_tx_hex,
             };
-            let tx_state = reqwest::blocking::Client::new()
+            let tx_resp_str = reqwest::blocking::Client::new()
                 .post(raw_tx_url)
                 .json(&raw_tx)
                 .send()
                 .unwrap()
                 .text()
                 .unwrap();
-
             println!(
                 "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
-                &self.network, amount, &to_address, tx_state
+                &self.network, amount, &to_address, tx_resp_str
             );
-            return tx_state;
+            let tx_obj: BlockCypherTx = match serde_json::from_str(&tx_resp_str) {
+                Ok(tx) => tx,
+                Err(e) => {
+                    println!("Unable to parse tx response {}", e);
+                    return "".to_owned();
+                }
+            };
+            let tx_hash = tx_obj.tx.hash;
+            return tx_hash;
         } else if coin_type == "eth" {
             let tx_hash = send_eth(
                 amount,
@@ -286,38 +294,24 @@ impl Wallet {
         Ok(())
     }
 
-    pub fn get_balance(&mut self) {
+    pub fn get_balance(&mut self) -> usize {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
-            let mut unconfirmed = 0;
-            let mut confirmed = 0;
-            for b in
-                btc::utils::get_all_addresses_balance(self.last_derived_pos, &self.private_share)
-                    .unwrap()
-            {
-                unconfirmed += b.unconfirmed;
-                confirmed += b.confirmed;
+            let mut total = 0;
+            for b in select_tx_in(self.last_derived_pos, &self.private_share).unwrap() {
+                total += b.value;
             }
             println!(
-                "Network: [{}], Balance: [balance: {}, pending: {}]",
-                &self.network, confirmed, unconfirmed
+                "Network: [{}], Balance: [balance: {}]",
+                &self.network, total
             );
+            return total;
         } else if coin_type == "eth" {
-            let total = get_eth_balance(self.last_derived_pos, &self.private_share).unwrap();
+            let total: f64 = get_eth_balance(self.last_derived_pos, &self.private_share).unwrap();
             println!("ETH Balance: [{}]", total);
+            return total as usize;
         }
-    }
-
-    pub fn list_unspent(&self) -> Vec<UtxoAggregator> {
-        let response: Vec<UtxoAggregator> =
-            btc::utils::get_all_addresses(self.last_derived_pos, &self.private_share)
-                .unwrap()
-                .into_iter()
-                .map(|a| btc::utils::list_unspent_for_addresss(a.to_string()).unwrap())
-                .flatten()
-                .collect();
-
-        response
+        0
     }
 }
 

@@ -96,7 +96,7 @@ pub fn sign_and_send(
 
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn get_raw_eth_tx(
+pub extern "C" fn send_eth_tx(
     c_endpoint: *const c_char,
     c_auth_token: *const c_char,
     c_user_id: *const c_char,

@@ -5,8 +5,8 @@ use std::{fs, collections::HashMap};
 
 use super::requests::ClientShim;
 
-pub const TEST_WALLET_FILENAME: &str = "test-assets/wallet.json";
 pub const ETH_TEST_WALLET_FILE: &str = "test-assets/eth_w.json";
+pub const BTC_TEST_WALLET_FILE: &str = "test-assets/btc_w.json";
 pub const RINKEBY_TEST_API: &str =
     "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J";
 

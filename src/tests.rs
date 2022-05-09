@@ -5,12 +5,12 @@ mod btc_test_suite {
         btc::{
             raw_tx::select_tx_in,
             utils::{
-                get_all_addresses, get_all_addresses_balance, get_bitcoin_network, get_new_address,
+                get_all_addresses, get_bitcoin_network, get_new_address,
                 BTC_TESTNET,
             },
         },
         dto::ecdsa::PrivateShare,
-        utilities::{derive_new_key, tests::{get_test_private_share, mock_client_shim}}, wallet::Wallet,
+        utilities::{derive_new_key, tests::{get_test_private_share, mock_client_shim, BTC_TEST_WALLET_FILE}}, wallet::Wallet,
     };
     use anyhow::Result;
     use bitcoin::Network;
@@ -48,23 +48,16 @@ mod btc_test_suite {
         assert!(!address_list.is_empty());
         Ok(())
     }
-
     #[test]
-    fn test_get_all_addresses_balance() -> Result<()> {
+    fn test_get_all_unspent() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let address_balance_list = get_all_addresses_balance(0, &private_share)?;
-        assert!(!address_balance_list.is_empty());
-
-        let address_balance = address_balance_list.get(0).unwrap();
-        assert!(address_balance.confirmed > 0);
-        assert_eq!(address_balance.unconfirmed, 0);
-        assert_eq!(
-            address_balance.address,
-            "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5"
-        );
+        let tx_ins = select_tx_in(0, &private_share)?;
+        let utxo = tx_ins.get(0).unwrap();
+        assert!(utxo.value > 0);
+        assert!(!utxo.address.is_empty());
+        assert!(!utxo.tx_hash.is_empty());
         Ok(())
     }
-
     #[test]
     fn test_select_tx_in() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
@@ -79,19 +72,23 @@ mod btc_test_suite {
     fn send_test() {
         // expect the server running
 
-        // let client_shim = mock_client_shim();
+        let client_shim = mock_client_shim();
 
-        // let mut w: Wallet = Wallet::load_from(TEST_WALLET_FILENAME);
+        let mut w: Wallet = Wallet::load_from(BTC_TEST_WALLET_FILE);
 
-        // let to_send = 0.00000001;
-
-        // let txid = w.send(
-        //     "",
-        //     "tb1qeaggs7flg6pjyffxdqmeymf06385ynpc9y06f9",
-        //     to_send,
-        //     &client_shim,
-        // );
-        // assert!(!txid.is_empty());
+        let unspent_amount = w.get_balance();
+        if unspent_amount <= 10000 {
+            return;
+        }
+        let to_send = 0.00000001;
+        let txid = w.send(
+            "",
+            "tb1qhthkunytunl6eprldj3lky3jn49t7uw8cml7xz",
+            to_send,
+            &client_shim,
+        );
+        assert!(!txid.is_empty());
+        w.save_to(BTC_TEST_WALLET_FILE);
     }
 }
 
@@ -155,13 +152,9 @@ mod eth_test_suite {
     #[test]
     fn send_test() {
         // expect the server running
-
         let client_shim = mock_client_shim();
-
         let mut w: Wallet = Wallet::load_from(ETH_TEST_WALLET_FILE);
-
         let to_send = 0.00000001;
-
         let txid = w.send(
             "0x4b74915e822a080e9d7ee0e887e1b3ea92c54059",
             "0xeb918e06d77a5b19936635ff5174ce94e53849bf",

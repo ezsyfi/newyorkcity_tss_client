@@ -5,7 +5,7 @@ use curv::elliptic::curves::traits::ECPoint;
 use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 
-use crate::dto::btc::{BlockCypherAddress, BtcBalanceAggregator, UtxoAggregator};
+use crate::dto::btc::{BlockCypherAddress, UtxoAggregator};
 use crate::dto::ecdsa::PrivateShare;
 use crate::utilities::derive_new_key;
 
@@ -30,32 +30,6 @@ pub fn list_unspent_for_addresss(address: String) -> Result<Vec<UtxoAggregator>>
     } else {
         Ok(Vec::new())
     }
-}
-
-pub fn get_all_addresses_balance(
-    last_derived_pos: u32,
-    private_share: &PrivateShare,
-) -> Result<Vec<BtcBalanceAggregator>> {
-    let response: Result<Vec<BtcBalanceAggregator>> =
-        get_all_addresses(last_derived_pos, private_share)?
-            .into_iter()
-            .map(|a| get_address_balance(&a))
-            .collect();
-
-    // println!("get_all_addresses_balance {:#?}", response);
-    response
-}
-
-fn get_address_balance(address: &bitcoin::Address) -> Result<BtcBalanceAggregator> {
-    let balance_url = BLOCK_CYPHER_HOST.to_owned() + "/addrs/" + &address.to_string() + "/balance";
-    let res = reqwest::blocking::get(balance_url)?.text()?;
-    let address_balance: BlockCypherAddress = serde_json::from_str(res.as_str())?;
-
-    Ok(BtcBalanceAggregator {
-        confirmed: address_balance.balance,
-        unconfirmed: address_balance.unconfirmed_balance,
-        address: address.to_string(),
-    })
 }
 
 pub fn get_all_addresses(
