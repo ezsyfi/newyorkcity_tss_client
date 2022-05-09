@@ -30,9 +30,10 @@ pub fn sign_and_send(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
-    let pos_mk = &addresses_derivation_map
-        .get(from.to_lowercase().as_str())
-        .unwrap();
+    let pos_mk = match addresses_derivation_map.get(from.to_lowercase().as_str()) {
+        Some(pos_mk) => pos_mk,
+        None => return Err(anyhow!("from address not found in addresses_derivation_map")),
+    };
     let mk = &pos_mk.mk;
     let pos = pos_mk.pos;
 

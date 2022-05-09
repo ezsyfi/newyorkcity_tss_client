@@ -19,5 +19,5 @@ pub mod wallet;
 
 mod tests;
 
-pub use curv::{arithmetic::traits::Converter, BigInt};
 // pub use multi_party_eddsa::protocols::aggsig::*;
+pub use curv::{arithmetic::traits::Converter, BigInt};
