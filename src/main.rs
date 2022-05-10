@@ -95,6 +95,8 @@ fn main() {
             println!("Rotating secret shares");
 
             let start = Instant::now();
+            let token: &str = matches.value_of("token").unwrap();
+            client_shim.auth_token = Some(token.to_owned());
             let wallet = wallet.rotate(&client_shim);
             wallet.save();
 

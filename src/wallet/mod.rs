@@ -285,17 +285,28 @@ impl Wallet {
     }
 
     pub fn derived(&mut self) -> Result<()> {
-        for i in 0..self.last_derived_pos {
-            let (pos, mk) = derive_new_key(&self.private_share, i);
-
-            let address = bitcoin::Address::p2wpkh(
-                &to_bitcoin_public_key(mk.public.q.get_element()),
-                get_bitcoin_network(&self.network)?,
-            )
-            .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
-
-            self.addresses_derivation_map
-                .insert(address.to_string(), MKPosDto { mk, pos });
+        if self.coin_type == "btc" {
+            for i in 0..self.last_derived_pos {
+                let (pos, mk) = derive_new_key(&self.private_share, i);
+    
+                let address = bitcoin::Address::p2wpkh(
+                    &to_bitcoin_public_key(mk.public.q.get_element()),
+                    get_bitcoin_network(&self.network)?,
+                )
+                .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
+    
+                self.addresses_derivation_map
+                    .insert(address.to_string(), MKPosDto { mk, pos });
+            }
+        } else if self.coin_type == "eth" {
+            for i in 0..self.last_derived_pos {
+                let (pos, mk) = derive_new_key(&self.private_share, i);
+    
+                let address = pubkey_to_eth_address(&mk);
+    
+                self.addresses_derivation_map
+                    .insert(format!("{:?}", address), MKPosDto { mk, pos });
+            }
         }
         Ok(())
     }

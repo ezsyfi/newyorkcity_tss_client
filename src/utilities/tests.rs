@@ -5,10 +5,9 @@ use std::{collections::HashMap, fs};
 
 use super::requests::ClientShim;
 
-pub const ETH_TEST_WALLET_FILE: &str = "test-assets/eth_w.json";
-pub const BTC_TEST_WALLET_FILE: &str = "test-assets/btc_w.json";
 pub const RINKEBY_TEST_API: &str =
     "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J";
+pub const PRIVATE_SHARE_FILENAME: &str = "test-assets/private_share.json";
 
 #[derive(Debug, Deserialize)]
 #[allow(dead_code, non_snake_case)]
@@ -22,10 +21,8 @@ pub struct MockToken {
     pub user_id: String,
 }
 
-pub fn get_test_private_share() -> PrivateShare {
-    const PRIVATE_SHARE_FILENAME: &str = "test-assets/private_share.json";
-    let data =
-        fs::read_to_string(PRIVATE_SHARE_FILENAME).expect("Unable to load test private_share!");
+pub fn get_test_private_share(filename: &str) -> PrivateShare {
+    let data = fs::read_to_string(filename).expect("Unable to load test private_share!");
     serde_json::from_str(&data).unwrap()
 }
 

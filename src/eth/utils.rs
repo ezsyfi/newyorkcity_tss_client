@@ -61,7 +61,6 @@ pub async fn get_balance_in_eth(
     web3_connection: &Web3<transports::WebSocket>,
 ) -> Result<f64> {
     let wei_balance = get_balance(public_address, web3_connection).await?;
-    println!("{:?}", wei_balance);
     Ok(wei_to_eth(wei_balance))
 }
 

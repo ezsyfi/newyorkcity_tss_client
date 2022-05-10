@@ -1,6 +1,10 @@
 # endpoint="http://localhost:8001"
 endpoint="https://tss.newyorkcity-staging.ezsy.com"
 TEST_SIGNIN_URL="https://go.api-staging.ezsy.com/api/v1/auth/signin"
+
+ROTATE_TEST_MAIL="tcdnguyen1997+rot@gmail.com"
+ROTATE_TEST_PW="123456"
+
 BTC_TEST_MAIL="tcdnguyen1997+btc@gmail.com"
 BTC_TEST_PW="123456"
 
