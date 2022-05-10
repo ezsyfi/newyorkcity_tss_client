@@ -1,7 +1,7 @@
 use serde_json::json;
 
 use crate::dto::ecdsa::PrivateShare;
-use std::{fs, collections::HashMap};
+use std::{collections::HashMap, fs};
 
 use super::requests::ClientShim;
 

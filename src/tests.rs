@@ -4,13 +4,14 @@ mod btc_test_suite {
     use crate::{
         btc::{
             raw_tx::select_tx_in,
-            utils::{
-                get_all_addresses, get_bitcoin_network, get_new_address,
-                BTC_TESTNET,
-            },
+            utils::{get_all_addresses, get_bitcoin_network, get_new_address, BTC_TESTNET},
         },
         dto::ecdsa::PrivateShare,
-        utilities::{derive_new_key, tests::{get_test_private_share, mock_client_shim, BTC_TEST_WALLET_FILE}}, wallet::Wallet,
+        utilities::{
+            derive_new_key,
+            tests::{get_test_private_share, mock_client_shim, BTC_TEST_WALLET_FILE},
+        },
+        wallet::Wallet,
     };
     use anyhow::Result;
     use bitcoin::Network;
@@ -72,7 +73,7 @@ mod btc_test_suite {
     fn send_test() {
         // expect the server running
 
-        let client_shim = mock_client_shim("BTC_TEST_MAIL","BTC_TEST_PW");
+        let client_shim = mock_client_shim("BTC_TEST_MAIL", "BTC_TEST_PW");
 
         let mut w: Wallet = Wallet::load_from(BTC_TEST_WALLET_FILE);
 
@@ -104,7 +105,10 @@ mod eth_test_suite {
         eth::utils::{
             get_all_addresses, get_all_addresses_balance, pubkey_to_eth_address, wei_to_eth,
         },
-        utilities::tests::{get_test_private_share, RINKEBY_TEST_API, ETH_TEST_WALLET_FILE, mock_client_shim}, wallet::Wallet,
+        utilities::tests::{
+            get_test_private_share, mock_client_shim, ETH_TEST_WALLET_FILE, RINKEBY_TEST_API,
+        },
+        wallet::Wallet,
     };
 
     #[test]
@@ -153,7 +157,7 @@ mod eth_test_suite {
     #[test]
     fn send_test() {
         // expect the server running
-        let client_shim = mock_client_shim("ETH_TEST_MAIL","ETH_TEST_PW");
+        let client_shim = mock_client_shim("ETH_TEST_MAIL", "ETH_TEST_PW");
         let mut w: Wallet = Wallet::load_from(ETH_TEST_WALLET_FILE);
         if w.get_balance() == 0 {
             return;
@@ -169,4 +173,3 @@ mod eth_test_suite {
         assert!(!txid.is_empty());
     }
 }
-

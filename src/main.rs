@@ -122,7 +122,6 @@ fn main() {
                 if wallet.coin_type == "btc" {
                     wallet.save();
                 }
-
             }
         }
     }
