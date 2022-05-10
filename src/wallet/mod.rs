@@ -14,7 +14,7 @@ use centipede::juggling::segmentation::Msegmentation;
 
 use crate::btc::raw_tx::select_tx_in;
 use crate::btc::utils::{get_bitcoin_network, to_bitcoin_address, to_bitcoin_public_key};
-use crate::dto::btc::{BlockCypherRawTx, BlockCypherTx};
+use crate::dto::btc::BlockCypherRawTx;
 use crate::dto::ecdsa::{MKPosDto, PrivateShare};
 use crate::ecdsa::recover::{backup_client_mk, verify_client_backup};
 use crate::eth;

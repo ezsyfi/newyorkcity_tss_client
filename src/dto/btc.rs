@@ -42,30 +42,3 @@ pub struct BlockCypherTxRef {
 pub struct BlockCypherRawTx {
     pub tx: String,
 }
-
-#[derive(Serialize, Deserialize)]
-pub struct BlockCypherTx {
-    pub tx: BlockCypherTxState,
-}
-
-#[allow(dead_code)]
-#[derive(Deserialize, Serialize, Debug)]
-pub struct BlockCypherTxState {
-    pub block_height: isize,
-    pub block_index: isize,
-    pub hash: String,
-    pub addresses: Vec<String>,
-    pub total: u64,
-    pub fees: u64,
-    pub size: u64,
-    pub vsize: u64,
-    pub preference: String,
-    pub relayed_by: String,
-    pub confirmed: String,
-    pub received: String,
-    pub ver: usize,
-    pub double_spend: bool,
-    pub vin_sz: usize,
-    pub vout_sz: usize,
-    pub confirmations: u64,
-}
