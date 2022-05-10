@@ -72,7 +72,7 @@ mod btc_test_suite {
     fn send_test() {
         // expect the server running
 
-        let client_shim = mock_client_shim();
+        let client_shim = mock_client_shim("BTC_TEST_MAIL","BTC_TEST_PW");
 
         let mut w: Wallet = Wallet::load_from(BTC_TEST_WALLET_FILE);
 
@@ -80,10 +80,11 @@ mod btc_test_suite {
         if unspent_amount <= 10000 {
             return;
         }
-        let to_send = 0.00000001;
+        println!("We have enough balance to test {:?}", w.get_balance());
+        let to_send = 0.00001; // 1000 satoshi
         let txid = w.send(
             "",
-            "tb1qhthkunytunl6eprldj3lky3jn49t7uw8cml7xz",
+            "tb1qcs5whgs59ywsgert834jhk2mr84sdnv0d84jw8", // to address in our btc_w
             to_send,
             &client_shim,
         );
@@ -152,12 +153,16 @@ mod eth_test_suite {
     #[test]
     fn send_test() {
         // expect the server running
-        let client_shim = mock_client_shim();
+        let client_shim = mock_client_shim("ETH_TEST_MAIL","ETH_TEST_PW");
         let mut w: Wallet = Wallet::load_from(ETH_TEST_WALLET_FILE);
-        let to_send = 0.00000001;
+        if w.get_balance() == 0 {
+            return;
+        }
+        println!("We have enough balance to test {:?}", w.get_balance());
+        let to_send = 0.001; // 1_000_000_000_000_000 wei
         let txid = w.send(
-            "0x4b74915e822a080e9d7ee0e887e1b3ea92c54059",
-            "0xeb918e06d77a5b19936635ff5174ce94e53849bf",
+            "0xd4606c1470580e6ded4b3a8a983f24ca86ca12ad", // from address in eth_w
+            "0xc3e8a75c0f162b2243c15095cd27a8f2c109e7aa", // to address in eth_w
             to_send,
             &client_shim,
         );

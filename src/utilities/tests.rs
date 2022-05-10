@@ -51,7 +51,7 @@ pub fn mock_sign_in(email: &str, password: &str, signin_url: &str) -> MockToken 
     }
 }
 
-pub fn mock_client_shim() -> ClientShim {
+pub fn mock_client_shim(test_email: &str, test_pw: &str) -> ClientShim {
     let mut settings = config::Config::default();
     settings
         .merge(config::File::with_name("Settings"))
@@ -60,8 +60,8 @@ pub fn mock_client_shim() -> ClientShim {
         .unwrap();
     let hm = settings.try_into::<HashMap<String, String>>().unwrap();
     let endpoint = hm.get("endpoint").unwrap();
-    let email = hm.get("TEST_EMAIL").unwrap();
-    let password = hm.get("TEST_PASS").unwrap();
+    let email = hm.get(test_email).unwrap();
+    let password = hm.get(test_pw).unwrap();
     let signin_url = hm.get("TEST_SIGNIN_URL").unwrap();
 
     let mock_token_obj = mock_sign_in(email, password, signin_url);

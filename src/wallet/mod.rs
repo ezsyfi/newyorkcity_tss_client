@@ -5,7 +5,7 @@ use curv::elliptic::curves::traits::ECPoint;
 use curv::BigInt;
 use kms::ecdsa::two_party::MasterKey2;
 use kms::ecdsa::two_party::*;
-use serde_json::{self};
+use serde_json::{self, Value};
 use std::fs;
 use web3::types::H256;
 
@@ -226,15 +226,21 @@ impl Wallet {
                 "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
                 &self.network, amount, &to_address, tx_resp_str
             );
-            let tx_obj: BlockCypherTx = match serde_json::from_str(&tx_resp_str) {
+            let tx_obj: Value = match serde_json::from_str(&tx_resp_str) {
                 Ok(tx) => tx,
                 Err(e) => {
                     println!("Unable to parse tx response {}", e);
                     return "".to_owned();
                 }
             };
-            let tx_hash = tx_obj.tx.hash;
-            return tx_hash;
+            let tx_hash = match &tx_obj["tx"]["hash"] {
+                Value::String(s) => s,
+                _ => {
+                    println!("Unable to get tx hash");
+                    return "".to_owned();
+                }
+            };
+            return tx_hash.to_owned();
         } else if coin_type == "eth" {
             let tx_hash = send_eth(
                 amount,
@@ -309,7 +315,7 @@ impl Wallet {
         } else if coin_type == "eth" {
             let total: f64 = get_eth_balance(self.last_derived_pos, &self.private_share).unwrap();
             println!("ETH Balance: [{}]", total);
-            return total as usize;
+            return (total * 1000.0) as usize; // multiply 1000 to get value that is greater than 0
         }
         0
     }
