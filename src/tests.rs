@@ -4,13 +4,14 @@ mod btc_test_suite {
     use crate::{
         btc::{
             raw_tx::select_tx_in,
-            utils::{
-                get_all_addresses, get_all_addresses_balance, get_bitcoin_network, get_new_address,
-                BTC_TESTNET,
-            },
+            utils::{get_all_addresses, get_bitcoin_network, get_new_address, BTC_TESTNET},
         },
         dto::ecdsa::PrivateShare,
-        utilities::{derive_new_key, tests::get_test_private_share},
+        utilities::{
+            derive_new_key,
+            tests::{get_test_private_share, mock_client_shim, BTC_TEST_WALLET_FILE},
+        },
+        wallet::Wallet,
     };
     use anyhow::Result;
     use bitcoin::Network;
@@ -48,23 +49,16 @@ mod btc_test_suite {
         assert!(!address_list.is_empty());
         Ok(())
     }
-
     #[test]
-    fn test_get_all_addresses_balance() -> Result<()> {
+    fn test_get_all_unspent() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
-        let address_balance_list = get_all_addresses_balance(0, &private_share)?;
-        assert!(!address_balance_list.is_empty());
-
-        let address_balance = address_balance_list.get(0).unwrap();
-        assert!(address_balance.confirmed > 0);
-        assert_eq!(address_balance.unconfirmed, 0);
-        assert_eq!(
-            address_balance.address,
-            "tb1qkr66k03t0d0ep8kmkl0zg8du45y2mfer0pflh5"
-        );
+        let tx_ins = select_tx_in(0, &private_share)?;
+        let utxo = tx_ins.get(0).unwrap();
+        assert!(utxo.value > 0);
+        assert!(!utxo.address.is_empty());
+        assert!(!utxo.tx_hash.is_empty());
         Ok(())
     }
-
     #[test]
     fn test_select_tx_in() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
@@ -75,41 +69,29 @@ mod btc_test_suite {
 
     // TODO: To test `send` feature on created account, we need to complete recover feature first.
     //       So maybe we can restore the wallet from the backup file.
-    // #[test]
-    // fn send_test() {
-    //     // expect the server running
-    //     let mut settings = config::Config::default();
-    //     settings
-    //         .merge(config::File::with_name("Settings"))
-    //         .unwrap()
-    //         .merge(config::Environment::new())
-    //         .unwrap();
-    //     let hm = settings.try_into::<HashMap<String, String>>().unwrap();
-    //     let endpoint = hm.get("endpoint").unwrap();
-    //     let email = hm.get("TEST_EMAIL").unwrap();
-    //     let password = hm.get("TEST_PASS").unwrap();
-    //     let signin_url = hm.get("TEST_SIGNIN_URL").unwrap();
+    #[test]
+    fn send_test() {
+        // expect the server running
 
-    //     let mock_token_obj = mock_sign_in(email, password, signin_url);
+        let client_shim = mock_client_shim("BTC_TEST_MAIL", "BTC_TEST_PW");
 
-    //     let client_shim = ClientShim::new(
-    //         endpoint.to_string(),
-    //         Some(mock_token_obj.token),
-    //         mock_token_obj.user_id,
-    //     );
+        let mut w: Wallet = Wallet::load_from(BTC_TEST_WALLET_FILE);
 
-    //     let mut w: Wallet = Wallet::load_from(TEST_WALLET_FILENAME);
-
-    //     let to_send = 0.00000001;
-
-    //     let txid = w.send(
-    //         "",
-    //         "tb1qeaggs7flg6pjyffxdqmeymf06385ynpc9y06f9",
-    //         to_send,
-    //         &client_shim,
-    //     );
-    //     assert!(!txid.is_empty());
-    // }
+        let unspent_amount = w.get_balance();
+        if unspent_amount <= 10000 {
+            return;
+        }
+        println!("We have enough balance to test {:?}", w.get_balance());
+        let to_send = 0.00001; // 1000 satoshi
+        let txid = w.send(
+            "",
+            "tb1qcs5whgs59ywsgert834jhk2mr84sdnv0d84jw8", // to address in our btc_w
+            to_send,
+            &client_shim,
+        );
+        assert!(!txid.is_empty());
+        w.save_to(BTC_TEST_WALLET_FILE);
+    }
 }
 
 #[cfg(test)]
@@ -123,7 +105,10 @@ mod eth_test_suite {
         eth::utils::{
             get_all_addresses, get_all_addresses_balance, pubkey_to_eth_address, wei_to_eth,
         },
-        utilities::tests::{get_test_private_share, RINKEBY_TEST_API},
+        utilities::tests::{
+            get_test_private_share, mock_client_shim, ETH_TEST_WALLET_FILE, RINKEBY_TEST_API,
+        },
+        wallet::Wallet,
     };
 
     #[test]
@@ -157,7 +142,6 @@ mod eth_test_suite {
     }
 
     #[tokio::test]
-
     async fn test_get_all_addresses_balance() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share();
         let balance_l = get_all_addresses_balance(RINKEBY_TEST_API, 1, &private_share).await?;
@@ -168,5 +152,24 @@ mod eth_test_suite {
 
         assert!(total > 0.0);
         Ok(())
+    }
+
+    #[test]
+    fn send_test() {
+        // expect the server running
+        let client_shim = mock_client_shim("ETH_TEST_MAIL", "ETH_TEST_PW");
+        let mut w: Wallet = Wallet::load_from(ETH_TEST_WALLET_FILE);
+        if w.get_balance() == 0 {
+            return;
+        }
+        println!("We have enough balance to test {:?}", w.get_balance());
+        let to_send = 0.001; // 1_000_000_000_000_000 wei
+        let txid = w.send(
+            "0xd4606c1470580e6ded4b3a8a983f24ca86ca12ad", // from address in eth_w
+            "0xc3e8a75c0f162b2243c15095cd27a8f2c109e7aa", // to address in eth_w
+            to_send,
+            &client_shim,
+        );
+        assert!(!txid.is_empty());
     }
 }

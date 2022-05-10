@@ -30,9 +30,14 @@ pub fn sign_and_send(
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
-    let pos_mk = &addresses_derivation_map
-        .get(from.to_lowercase().as_str())
-        .unwrap();
+    let pos_mk = match addresses_derivation_map.get(from.to_lowercase().as_str()) {
+        Some(pos_mk) => pos_mk,
+        None => {
+            return Err(anyhow!(
+                "from address not found in addresses_derivation_map"
+            ))
+        }
+    };
     let mk = &pos_mk.mk;
     let pos = pos_mk.pos;
 
@@ -95,7 +100,7 @@ pub fn sign_and_send(
 
 #[no_mangle]
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
-pub extern "C" fn get_raw_eth_tx(
+pub extern "C" fn send_eth_tx(
     c_endpoint: *const c_char,
     c_auth_token: *const c_char,
     c_user_id: *const c_char,

@@ -121,4 +121,4 @@ clean:
 ## test:
 .PHONY: test
 test:
-	cargo test
+	cargo test --verbose -- --nocapture

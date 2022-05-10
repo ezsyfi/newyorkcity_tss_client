@@ -1,9 +1,12 @@
 use serde_json::json;
 
 use crate::dto::ecdsa::PrivateShare;
-use std::fs;
+use std::{collections::HashMap, fs};
 
-pub const TEST_WALLET_FILENAME: &str = "test-assets/wallet.json";
+use super::requests::ClientShim;
+
+pub const ETH_TEST_WALLET_FILE: &str = "test-assets/eth_w.json";
+pub const BTC_TEST_WALLET_FILE: &str = "test-assets/btc_w.json";
 pub const RINKEBY_TEST_API: &str =
     "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J";
 
@@ -46,4 +49,26 @@ pub fn mock_sign_in(email: &str, password: &str, signin_url: &str) -> MockToken 
         token: http_resp.Msg,
         user_id: email.to_owned(),
     }
+}
+
+pub fn mock_client_shim(test_email: &str, test_pw: &str) -> ClientShim {
+    let mut settings = config::Config::default();
+    settings
+        .merge(config::File::with_name("Settings"))
+        .unwrap()
+        .merge(config::Environment::new())
+        .unwrap();
+    let hm = settings.try_into::<HashMap<String, String>>().unwrap();
+    let endpoint = hm.get("endpoint").unwrap();
+    let email = hm.get(test_email).unwrap();
+    let password = hm.get(test_pw).unwrap();
+    let signin_url = hm.get("TEST_SIGNIN_URL").unwrap();
+
+    let mock_token_obj = mock_sign_in(email, password, signin_url);
+
+    ClientShim::new(
+        endpoint.to_string(),
+        Some(mock_token_obj.token),
+        mock_token_obj.user_id,
+    )
 }

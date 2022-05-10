@@ -1,4 +1,4 @@
-use super::utils::{get_all_addresses_balance, list_unspent_for_addresss, BTC_TESTNET};
+use super::utils::{get_all_addresses, list_unspent_for_addresss, BTC_TESTNET};
 use crate::btc::utils::{get_bitcoin_network, get_new_address, to_bitcoin_public_key};
 use crate::dto::btc::UtxoAggregator;
 use crate::dto::ecdsa::{MKPosAddressDto, MKPosDto, PrivateShare};
@@ -16,7 +16,6 @@ use bitcoin::util::bip143::SigHashCache;
 use curv::arithmetic::traits::Converter; // Need for signing
 use curv::elliptic::curves::traits::ECPoint;
 use curv::BigInt;
-use itertools::Itertools;
 
 use std::collections::HashMap;
 use std::ffi::CString;
@@ -170,21 +169,16 @@ pub fn create_raw_tx(
 }
 
 // TODO: handle fees
-// Select all txin enough to pay the amount
 pub fn select_tx_in(
     last_derived_pos: u32,
     private_share: &PrivateShare,
 ) -> Result<Vec<UtxoAggregator>> {
     // greedy selection
-    let list_unspent: Vec<UtxoAggregator> =
-        get_all_addresses_balance(last_derived_pos, private_share)?
-            .into_iter()
-            // .filter(|b| b.confirmed > 0)
-            .filter_map(|a| list_unspent_for_addresss(a.address).ok())
-            .flatten()
-            .sorted_by(|a, b| a.value.partial_cmp(&b.value).unwrap())
-            .into_iter()
-            .collect();
+    let list_unspent: Vec<UtxoAggregator> = get_all_addresses(last_derived_pos, private_share)?
+        .into_iter()
+        .filter_map(|a| list_unspent_for_addresss(a.to_string()).ok())
+        .flatten()
+        .collect();
 
     // println!("list_unspent {:#?}", list_unspent);
 

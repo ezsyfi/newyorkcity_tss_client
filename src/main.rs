@@ -61,15 +61,6 @@ fn main() {
             wallet.save();
         } else if matches.is_present("get-balance") {
             wallet.get_balance();
-        } else if matches.is_present("list-unspent") {
-            let unspent = wallet.list_unspent();
-            let hashes: Vec<String> = unspent.into_iter().map(|u| u.tx_hash).collect();
-
-            println!(
-                "Network: [{}], Unspent tx hashes: [\n{}\n]",
-                network,
-                hashes.join("\n")
-            );
         } else if matches.is_present("backup") {
             println!("Backup private share pending (it can take some time)...");
             let start = Instant::now();
@@ -128,7 +119,9 @@ fn main() {
                     &client_shim,
                 );
 
-                wallet.save();
+                if wallet.coin_type == "btc" {
+                    wallet.save();
+                }
             }
         }
     }
