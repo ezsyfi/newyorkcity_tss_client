@@ -28,12 +28,12 @@ from address: where we keep money
 
 BTC: https://live.blockcypher.com/btc-testnet/ 
 - the `output addresses` of the transactions must include: 
-    - the to (lowest pos) address: `tb1qrgkqy0yvpyauwj9f4tq7qku8lgfwn4rw3v9ja8`
+    - the to (lowest pos) address: `tb1qz4lma0u0xyepgkzlsegxfxw7e65ue7azhkck5m`
     - the change (highest pos) address which will become the from address later on 
 
 ETH: https://rinkeby.etherscan.io/ 
-- the to address: `0xc3e8a75c0f162b2243c15095cd27a8f2c109e7aa`
-- the from address: `0xd4606c1470580e6ded4b3a8a983f24ca86ca12ad`
+- the to address: `0x70045eea879fb025026e59efa099dbf99b2657db`
+- the from address: `0xb3d0a620d31d064542b88b9d699e5fe7cc52565c`
 
 # NOTES:
 - Not have test coverage yet

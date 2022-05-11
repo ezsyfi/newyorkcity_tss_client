@@ -32,9 +32,10 @@ mod ecdsa_test_suite {
     #[test]
     fn test_rotate() {
         let wallet_file: &str = "test-assets/rotate_w.json";
-        let mut w: Wallet = Wallet::load_from(wallet_file);
-        let private_share = w.private_share;
         let client_shim = mock_client_shim("ROTATE_TEST_MAIL", "ROTATE_TEST_PW");
+        let w: Wallet = Wallet::new(&client_shim, "testnet", "eth");
+        w.save_to(wallet_file);
+        let private_share = w.private_share;
         let (old_x1, old_x2) = get_coordinates_of_2_mk(&private_share);
         let old_paillier_x = get_coordinate_of_p2_private(&private_share);
 
@@ -46,8 +47,6 @@ mod ecdsa_test_suite {
         assert_ne!(new_x1, old_x1);
         assert_ne!(new_x2, old_x2);
         assert_ne!(old_paillier_x, new_paillier_x);
-        w.private_share = rotated_private_share;
-        w.save_to(wallet_file);
     }
 }
 
@@ -122,31 +121,7 @@ mod btc_test_suite {
     }
 
     #[test]
-    fn test_send_btc() {
-        // expect the server running
-        let wallet_file: &str = "test-assets/btc_w.json";
-        let client_shim = mock_client_shim("BTC_TEST_MAIL", "BTC_TEST_PW");
-        let mut w: Wallet = Wallet::load_from(wallet_file);
-        let unspent_amount = w.get_balance();
-        print_balance(unspent_amount);
-        if unspent_amount <= 10000 {
-            return;
-        }
-        // Act
-        let to_send = SENT_BTC;
-        let txid = w.send(
-            "",                                           // btc doesn't need to specify from address
-            "tb1qrgkqy0yvpyauwj9f4tq7qku8lgfwn4rw3v9ja8", // to address in our btc_w
-            to_send,
-            &client_shim,
-        );
-        print_tx_hash(&txid);
-        w.save_to(wallet_file);
-        assert!(!txid.is_empty());
-    }
-
-    #[test]
-    fn test_rotate_and_send_btc() {
+    fn test_send_btc_w_rotate() {
         // expect the server running
         let w_file: &str = "test-assets/btc_w.json";
         let client_shim = mock_client_shim("BTC_TEST_MAIL", "BTC_TEST_PW");
@@ -162,7 +137,7 @@ mod btc_test_suite {
         let to_send = SENT_BTC;
         let txid = new_w.send(
             "",                                           // btc doesn't need to specify from address
-            "tb1qrgkqy0yvpyauwj9f4tq7qku8lgfwn4rw3v9ja8", // to address in our btc_w
+            "tb1qz4lma0u0xyepgkzlsegxfxw7e65ue7azhkck5m", // to address in our btc_w
             to_send,
             &client_shim,
         );
@@ -190,6 +165,8 @@ mod eth_test_suite {
         wallet::Wallet,
     };
     const SENT_ETH: f64 = 0.001; // 1_000_000_000_000_000 wei
+    const FROM_ADDRESS: &str = "0xb3d0a620d31d064542b88b9d699e5fe7cc52565c";
+    const TO_ADDRESS: &str = "0x70045eea879fb025026e59efa099dbf99b2657db";
     #[test]
     fn test_pubkey_to_eth_address() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share(PRIVATE_SHARE_FILENAME);
@@ -233,35 +210,12 @@ mod eth_test_suite {
     }
 
     #[test]
-    fn test_send_eth() {
-        // expect the server running
-        let client_shim = mock_client_shim("ETH_TEST_MAIL", "ETH_TEST_PW");
-        let mut w: Wallet = Wallet::load_from("test-assets/eth_w.json");
-        print_balance(w.get_balance());
-        if w.get_balance() == 0 {
-            return;
-        }
-
-        // Act
-        let to_send = SENT_ETH;
-        let txid = w.send(
-            "0xd4606c1470580e6ded4b3a8a983f24ca86ca12ad", // from address in eth_w
-            "0xc3e8a75c0f162b2243c15095cd27a8f2c109e7aa", // to address in eth_w
-            to_send,
-            &client_shim,
-        );
-        print_tx_hash(&txid);
-        assert!(!txid.is_empty());
-    }
-
-    #[test]
-    fn test_rotate_and_send_eth() {
+    fn test_send_eth_w_rotate() {
         // expect the server running
         let client_shim = mock_client_shim("ETH_TEST_MAIL", "ETH_TEST_PW");
         let w_file = "test-assets/eth_w.json";
         let mut w: Wallet = Wallet::load_from(w_file);
-        print_balance(w.get_balance());
-        if w.get_balance() == 0 {
+        if !check_eth_balance(&mut w) {
             return;
         }
 
@@ -270,12 +224,20 @@ mod eth_test_suite {
         let mut new_w = Wallet::load_from(w_file);
         let to_send = SENT_ETH;
         let txid = new_w.send(
-            "0xd4606c1470580e6ded4b3a8a983f24ca86ca12ad", // from address in eth_w
-            "0xc3e8a75c0f162b2243c15095cd27a8f2c109e7aa", // to address in eth_w
+            FROM_ADDRESS, // from address in eth_w
+            TO_ADDRESS,   // to address in eth_w
             to_send,
             &client_shim,
         );
         print_tx_hash(&txid);
         assert!(!txid.is_empty());
+    }
+
+    fn check_eth_balance(w: &mut Wallet) -> bool {
+        print_balance(w.get_balance());
+        if w.get_balance() == 0 {
+            return false;
+        }
+        true
     }
 }
