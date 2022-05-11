@@ -2,7 +2,6 @@ pub mod a_requests;
 pub mod err_handling;
 pub mod ffi;
 pub mod requests;
-pub mod tests;
 
 use crate::dto::ecdsa::PrivateShare;
 use curv::BigInt;

@@ -1,9 +1,7 @@
 use serde_json::json;
 
-use crate::dto::ecdsa::PrivateShare;
+use crate::{dto::ecdsa::PrivateShare, utilities::requests::ClientShim};
 use std::{collections::HashMap, fs};
-
-use super::requests::ClientShim;
 
 pub const RINKEBY_TEST_API: &str =
     "wss://eth-rinkeby.alchemyapi.io/v2/UmSDyVix3dL4CtIxC2zlKkSuk2UoRw1J";
@@ -26,7 +24,7 @@ pub fn get_test_private_share(filename: &str) -> PrivateShare {
     serde_json::from_str(&data).unwrap()
 }
 
-pub fn mock_sign_in(email: &str, password: &str, signin_url: &str) -> MockToken {
+fn mock_sign_in(email: &str, password: &str, signin_url: &str) -> MockToken {
     let http_client = reqwest::blocking::Client::new();
     let auth_body = json!({
         "email": email,
@@ -68,4 +66,12 @@ pub fn mock_client_shim(test_email: &str, test_pw: &str) -> ClientShim {
         Some(mock_token_obj.token),
         mock_token_obj.user_id,
     )
+}
+
+pub fn print_balance(balance: usize) {
+    println!("Balance to test {:?}", balance);
+}
+
+pub fn print_tx_hash(hash: &str) {
+    println!("Transaction hash: {:?}", hash);
 }
