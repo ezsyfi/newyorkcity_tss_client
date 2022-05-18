@@ -30,3 +30,10 @@ pub struct EthSendTxResp {
 pub struct EthSendTxReqBody {
     pub raw_tx: Bytes,
 }
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct ERC20 {
+    pub address: String,
+    pub network: String,
+    pub abi: String,
+}

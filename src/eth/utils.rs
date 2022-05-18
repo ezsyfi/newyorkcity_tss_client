@@ -1,17 +1,92 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
+use curv::arithmetic::traits::Converter;
 use curv::{elliptic::curves::traits::ECPoint, BigInt};
+
+use crate::eth::transaction::Transaction;
+use crate::{
+    dto::{
+        ecdsa::{MKPosDto, PrivateShare},
+        eth::{EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp},
+    },
+    ecdsa::sign,
+    utilities::requests::{self, ClientShim},
+};
 use futures::future::try_join_all;
 use kms::ecdsa::two_party::MasterKey2;
-use std::str::FromStr;
+use std::{collections::HashMap, str::FromStr};
 use web3::{
     self,
-    signing::keccak256,
+    signing::{keccak256, Signature},
     transports::{self, WebSocket},
-    types::{Address, U256},
+    types::{Address, H160, H256, U256},
     Web3,
 };
 
-use crate::dto::ecdsa::PrivateShare;
+pub fn sign_send_raw_tx(
+    chain_id: u64,
+    tx: Transaction,
+    pos_mk: &MKPosDto,
+    private_share: &PrivateShare,
+    client_shim: &ClientShim,
+) -> Result<EthSendTxResp> {
+    let msg = tx.get_hash(chain_id);
+
+    let sig = sign(
+        client_shim,
+        BigInt::from_hex(&hex::encode(&msg[..])).unwrap(),
+        &pos_mk.mk,
+        BigInt::from(0),
+        BigInt::from(pos_mk.pos),
+        &private_share.id,
+    )?;
+
+    let r = H256::from_slice(&BigInt::to_bytes(&sig.r));
+    let s = H256::from_slice(&BigInt::to_bytes(&sig.s));
+    let v = sig.recid as u64 + 35 + chain_id * 2;
+    let signature = Signature { r, s, v };
+    let signed = tx.sign(signature, chain_id);
+
+    let tx_send_body = EthSendTxReqBody {
+        raw_tx: signed.raw_transaction,
+    };
+
+    match requests::postb(client_shim, "eth/tx/send", tx_send_body)? {
+        Some(s) => Ok(s),
+        None => return Err(anyhow!("send ETH tx request failed")),
+    }
+}
+
+pub fn get_tx_params(
+    from_address: H160,
+    to_address: H160,
+    eth_value: f64,
+    client_shim: &ClientShim,
+) -> Result<EthTxParamsResp> {
+    let tx_params_body = EthTxParamsReqBody {
+        from_address,
+        to_address,
+        eth_value,
+    };
+
+    match requests::postb(client_shim, "eth/tx/params", tx_params_body)? {
+        Some(s) => Ok(s),
+        None => return Err(anyhow!("get ETH tx params request failed")),
+    }
+}
+
+pub fn get_pos_mk_dto<'a>(
+    address: &str,
+    addresses_derivation_map: &'a HashMap<String, MKPosDto>,
+) -> Result<&'a MKPosDto> {
+    match addresses_derivation_map.get(address.to_lowercase().as_str()) {
+        Some(pos_mk) => Ok(pos_mk),
+        None => {
+            return Err(anyhow!(
+                "from address not found in addresses_derivation_map"
+            ))
+        }
+    }
+}
 
 pub async fn get_all_addresses_balance(
     web3_connection_url: &str,
