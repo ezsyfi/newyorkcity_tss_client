@@ -57,14 +57,10 @@ pub fn sign_send_raw_tx(
     }
 }
 
-pub fn get_contract(
-    name: &str,
-    network: &str,
-    client_shim: &ClientShim,
-) -> Result<Erc20Resp> {
+pub fn get_contract(name: &str, network: &str, client_shim: &ClientShim) -> Result<Erc20Resp> {
     let erc20_body = Erc20ReqBody {
         name: name.to_owned(),
-        network: network.to_owned()
+        network: network.to_owned(),
     };
 
     match requests::postb(client_shim, "eth/contract", erc20_body)? {
@@ -173,7 +169,6 @@ pub fn eth_to_wei(eth_val: f64) -> U256 {
 
     U256::from(result)
 }
-
 
 pub async fn establish_web3_connection(url: &str) -> Result<Web3<transports::WebSocket>> {
     let transport = transports::WebSocket::new(url).await?;

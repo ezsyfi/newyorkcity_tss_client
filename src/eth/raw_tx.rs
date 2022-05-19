@@ -45,7 +45,15 @@ pub fn send_erc20(
         Token::Address(to_address),
         Token::Uint(token_amount.into()),
     ])?;
-    let tx_hash = sign_and_send(from, to, 0.0, data, client_shim, private_share, addresses_derivation_map)?;
+    let tx_hash = sign_and_send(
+        from,
+        to,
+        0.0,
+        data,
+        client_shim,
+        private_share,
+        addresses_derivation_map,
+    )?;
     Ok(tx_hash)
 }
 
