@@ -361,6 +361,7 @@ fn send_eth(
         from,
         to,
         eth_value,
+        Vec::new(),
         client_shim,
         private_share,
         addresses_derivation_map,

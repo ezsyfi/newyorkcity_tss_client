@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use curv::arithmetic::traits::Converter;
 use curv::{elliptic::curves::traits::ECPoint, BigInt};
 
+use crate::dto::eth::{Erc20ReqBody, Erc20Resp};
 use crate::eth::transaction::Transaction;
 use crate::{
     dto::{
@@ -53,6 +54,22 @@ pub fn sign_send_raw_tx(
     match requests::postb(client_shim, "eth/tx/send", tx_send_body)? {
         Some(s) => Ok(s),
         None => return Err(anyhow!("send ETH tx request failed")),
+    }
+}
+
+pub fn get_contract(
+    name: &str,
+    network: &str,
+    client_shim: &ClientShim,
+) -> Result<Erc20Resp> {
+    let erc20_body = Erc20ReqBody {
+        name: name.to_owned(),
+        network: network.to_owned()
+    };
+
+    match requests::postb(client_shim, "eth/contract", erc20_body)? {
+        Some(s) => Ok(s),
+        None => return Err(anyhow!("get ERC20 contract request failed")),
     }
 }
 
@@ -149,6 +166,14 @@ pub fn wei_to_eth(wei_val: U256) -> f64 {
     let res = wei_val.as_u128() as f64;
     res / 1_000_000_000_000_000_000.0
 }
+
+pub fn eth_to_wei(eth_val: f64) -> U256 {
+    let result = eth_val * 1_000_000_000_000_000_000.0;
+    let result = result as u128;
+
+    U256::from(result)
+}
+
 
 pub async fn establish_web3_connection(url: &str) -> Result<Web3<transports::WebSocket>> {
     let transport = transports::WebSocket::new(url).await?;
