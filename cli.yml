@@ -8,6 +8,16 @@ args:
               multiple: true
               help: Sets the level of verbosity
 subcommands:
+      - mint:
+              about: Mint token
+              version: "1.0"
+              args:
+                    - address:
+                            short: a
+                            help: Sets the wallet address
+                    - amount:
+                            short: m
+                            help: Sets the amount of mint tokens
       - create-wallet:
               about: Create an MPC wallet
               version: "1.0"
