@@ -6,7 +6,7 @@ use clap::App;
 
 use client::escrow;
 use client::utilities::requests::ClientShim;
-use client::wallet;
+use client::wallet::{self, WALLET_FILENAME};
 use floating_duration::TimeFormat;
 use std::collections::HashMap;
 use std::time::Instant;
@@ -95,8 +95,9 @@ fn main() {
             println!("Rotating secret shares");
 
             let start = Instant::now();
-            let wallet = wallet.rotate(&client_shim);
-            wallet.save();
+            let token: &str = matches.value_of("token").unwrap();
+            client_shim.auth_token = Some(token.to_owned());
+            wallet.rotate(&client_shim, WALLET_FILENAME);
 
             println!(
                 "key rotation complete, (Took: {})",

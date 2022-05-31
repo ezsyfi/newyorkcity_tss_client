@@ -20,9 +20,9 @@ use crate::ecdsa::recover::{backup_client_mk, verify_client_backup};
 use crate::eth;
 use crate::eth::raw_tx::sign_and_send;
 use crate::eth::utils::pubkey_to_eth_address;
+use crate::tests::common::RINKEBY_TEST_API;
 use crate::utilities::derive_new_key;
 use crate::utilities::requests::ClientShim;
-use crate::utilities::tests::RINKEBY_TEST_API;
 
 use super::btc;
 
@@ -32,7 +32,7 @@ use super::utilities::requests;
 use std::collections::HashMap;
 
 // TODO: move that to a config file and double check electrum server addresses
-const WALLET_FILENAME: &str = "wallet/wallet.json";
+pub const WALLET_FILENAME: &str = "wallet/wallet.json";
 const BACKUP_FILENAME: &str = "wallet/backup.data";
 const BLOCK_CYPHER_HOST: &str = "https://api.blockcypher.com/v1/btc/test3";
 #[derive(Serialize, Deserialize)]
@@ -66,7 +66,7 @@ impl Wallet {
         }
     }
 
-    pub fn rotate(self, client_shim: &ClientShim) -> Self {
+    pub fn rotate(self, client_shim: &ClientShim, filepath: &str) {
         let rotated_private_share =
             ecdsa::rotate_private_share(self.private_share, client_shim).unwrap();
         let addresses_derivation_map = HashMap::new();
@@ -80,7 +80,7 @@ impl Wallet {
         };
         wallet_after_rotate.derived().unwrap();
 
-        wallet_after_rotate
+        wallet_after_rotate.save_to(filepath);
     }
 
     pub fn backup(&self) {
@@ -211,6 +211,7 @@ impl Wallet {
                 },
             );
             self.last_derived_pos = &self.last_derived_pos + 1;
+
             let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
             let raw_tx = BlockCypherRawTx {
                 tx: raw_tx.raw_tx_hex,
@@ -285,17 +286,30 @@ impl Wallet {
     }
 
     pub fn derived(&mut self) -> Result<()> {
-        for i in 0..self.last_derived_pos {
-            let (pos, mk) = derive_new_key(&self.private_share, i);
+        if self.coin_type == "btc" {
+            for i in 0..self.last_derived_pos {
+                let (pos, mk) = derive_new_key(&self.private_share, i);
 
-            let address = bitcoin::Address::p2wpkh(
-                &to_bitcoin_public_key(mk.public.q.get_element()),
-                get_bitcoin_network(&self.network)?,
-            )
-            .expect("Cannot panic because `to_bitcoin_public_key` creates a compressed address");
+                let address = bitcoin::Address::p2wpkh(
+                    &to_bitcoin_public_key(mk.public.q.get_element()),
+                    get_bitcoin_network(&self.network)?,
+                )
+                .expect(
+                    "Cannot panic because `to_bitcoin_public_key` creates a compressed address",
+                );
 
-            self.addresses_derivation_map
-                .insert(address.to_string(), MKPosDto { mk, pos });
+                self.addresses_derivation_map
+                    .insert(address.to_string(), MKPosDto { mk, pos });
+            }
+        } else if self.coin_type == "eth" {
+            for i in 0..self.last_derived_pos {
+                let (pos, mk) = derive_new_key(&self.private_share, i);
+
+                let address = pubkey_to_eth_address(&mk);
+
+                self.addresses_derivation_map
+                    .insert(format!("{:?}", address), MKPosDto { mk, pos });
+            }
         }
         Ok(())
     }
