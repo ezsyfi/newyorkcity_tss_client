@@ -167,8 +167,8 @@ mod eth_test_suite {
     const ADDRESS_FROM_PUBKEY_OF_MK2: &str = "0xa83b17156ce2a750e7550d3b00d7968463bd759a";
     const FIRST_ADDRESS_OF_MK2: &str = "0x1737844cc0d63f1bb6ed5c049a843dd7c2ab22b0";
     const SENT_ETH: f64 = 0.001; // 1_000_000_000_000_000 wei
-    const FROM_ADDRESS: &str = "0xf2e4c358d1584a5bce893c5f80412d4de5a15002";
-    const TO_ADDRESS: &str = "0x762d254e6adabfa95b9c5cdaddf50d5c77471ae1";
+    const FROM_ADDRESS: &str = "0x6f976d41d02a024a03c554dba0f5eda4afaace3f";
+    const TO_ADDRESS: &str = "0x9f3ea7e363dc7d4afc089ed4d3e0b9f15ebc2319";
     #[test]
     fn test_pubkey_to_eth_address() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share(PRIVATE_SHARE_FILENAME);
@@ -211,6 +211,8 @@ mod eth_test_suite {
         Ok(())
     }
 
+    // This test only run at one place, need to be ignore on github action
+    // Test it: cargo test test_send_eth_w_rotate -- --nocapture
     #[test]
     fn test_send_eth_w_rotate() {
         // expect the server running
