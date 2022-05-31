@@ -164,9 +164,11 @@ mod eth_test_suite {
         },
         wallet::Wallet,
     };
+    const ADDRESS_FROM_PUBKEY_OF_MK2: &str = "0xa83b17156ce2a750e7550d3b00d7968463bd759a";
+    const FIRST_ADDRESS_OF_MK2: &str = "0x1737844cc0d63f1bb6ed5c049a843dd7c2ab22b0";
     const SENT_ETH: f64 = 0.001; // 1_000_000_000_000_000 wei
-    const FROM_ADDRESS: &str = "0xb3d0a620d31d064542b88b9d699e5fe7cc52565c";
-    const TO_ADDRESS: &str = "0x70045eea879fb025026e59efa099dbf99b2657db";
+    const FROM_ADDRESS: &str = "0xf2e4c358d1584a5bce893c5f80412d4de5a15002";
+    const TO_ADDRESS: &str = "0x762d254e6adabfa95b9c5cdaddf50d5c77471ae1";
     #[test]
     fn test_pubkey_to_eth_address() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share(PRIVATE_SHARE_FILENAME);
@@ -175,7 +177,7 @@ mod eth_test_suite {
             .get_child(vec![BigInt::from(0), BigInt::from(1)]);
 
         let addrs = pubkey_to_eth_address(&mk);
-        let exp = "0xa83b17156ce2a750e7550d3b00d7968463bd759a".to_string();
+        let exp = ADDRESS_FROM_PUBKEY_OF_MK2.to_string();
         assert_eq!(format!("{:?}", addrs), exp);
         Ok(())
     }
@@ -184,7 +186,7 @@ mod eth_test_suite {
     fn test_get_all_addresses() -> Result<()> {
         let private_share: PrivateShare = get_test_private_share(PRIVATE_SHARE_FILENAME);
         let addrs = get_all_addresses(0, &private_share)?;
-        let exp = "0x1737844cc0d63f1bb6ed5c049a843dd7c2ab22b0".to_string();
+        let exp = FIRST_ADDRESS_OF_MK2.to_string();
         assert_eq!(format!("{:?}", addrs.get(0).unwrap()), exp);
         Ok(())
     }
