@@ -69,6 +69,7 @@ pub fn get_contract(name: &str, network: &str, client_shim: &ClientShim) -> Resu
     }
 }
 
+
 pub fn get_tx_params(
     from_address: H160,
     to_address: H160,
@@ -153,7 +154,7 @@ pub async fn get_balance_in_eth(
 }
 
 async fn get_balance(public_address: String, web3_connection: &Web3<WebSocket>) -> Result<U256> {
-    let wallet_address = Address::from_str(public_address.as_str())?;
+    let wallet_address = handle_eth_address_conversion(public_address.as_str())?;
     let balance = web3_connection.eth().balance(wallet_address, None).await?;
     Ok(balance)
 }
@@ -173,4 +174,15 @@ pub fn eth_to_wei(eth_val: f64) -> U256 {
 pub async fn establish_web3_connection(url: &str) -> Result<Web3<transports::WebSocket>> {
     let transport = transports::WebSocket::new(url).await?;
     Ok(Web3::new(transport))
+}
+
+pub fn handle_eth_address_conversion(address: &str) -> Result<H160> {
+    match Address::from_str(address) {
+        Ok(address) => Ok(address),
+        Err(e) => {
+            let error_msg = format!("Error converting to ETH address: {}", e);
+            println!("{}", error_msg);
+            Err(anyhow!(error_msg))
+        }
+    }
 }

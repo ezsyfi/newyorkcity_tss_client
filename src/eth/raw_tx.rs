@@ -1,9 +1,11 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 
 use crate::dto::ecdsa::MKPosDto;
 use crate::dto::ecdsa::PrivateShare;
 use crate::eth::transaction::Transaction;
+
+use crate::eth::utils::get_contract;
+use crate::eth::utils::handle_eth_address_conversion;
 use crate::eth::utils::pubkey_to_eth_address;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
 use crate::utilities::ffi::ffi_utils::get_str_from_c_char;
@@ -17,10 +19,9 @@ use web3::types::TransactionParameters;
 
 use std::ffi::CString;
 use std::os::raw::c_char;
-use web3::types::{Address, H256};
+use web3::types::H256;
 
 use super::utils::eth_to_wei;
-use super::utils::get_contract;
 use super::utils::get_pos_mk_dto;
 use super::utils::get_tx_params;
 use super::utils::sign_send_raw_tx;
@@ -38,13 +39,15 @@ pub fn send_erc20(
 ) -> Result<H256> {
     let erc20_resp = get_contract(token_name, network, client_shim)?;
     let contract_abi = erc20_resp.contract;
-    let from_address = Address::from_str(from)?;
-    let to_address = Address::from_str(to)?;
-    let data = contract_abi.function("transferFrom")?.encode_input(&[
+    let from_address = handle_eth_address_conversion(from)?;
+    let to_address = handle_eth_address_conversion(to)?;
+    let func = contract_abi.function("transferFrom")?;
+    let data = func.encode_input(&[
         Token::Address(from_address),
         Token::Address(to_address),
         Token::Uint(token_amount.into()),
     ])?;
+    println!("send_erc20 data: {:?}", data);
     let tx_hash = sign_and_send(
         from,
         to,
@@ -54,6 +57,7 @@ pub fn send_erc20(
         private_share,
         addresses_derivation_map,
     )?;
+    println!("send_erc20 tx_hash: {}", format!("{:?}",tx_hash));
     Ok(tx_hash)
 }
 
@@ -70,7 +74,7 @@ pub fn sign_and_send(
     let mk = &pos_mk.mk;
 
     let from_address = pubkey_to_eth_address(mk);
-    let to_address = Address::from_str(to)?;
+    let to_address = handle_eth_address_conversion(to)?;
 
     let tx_params = get_tx_params(from_address, to_address, eth_value, client_shim)?;
 
