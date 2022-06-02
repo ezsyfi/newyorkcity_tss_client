@@ -4,7 +4,7 @@ A TSS plugin for mobile wallet
 
 ## Check below instructions to use
 
-[How TSS works](./DEMO.md)
+[How TSS works](./CLI_APP.md)
 
 [How to test](./TEST.md)
 
