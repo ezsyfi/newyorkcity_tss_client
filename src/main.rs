@@ -144,7 +144,6 @@ fn main() {
                     amount.to_string().parse::<f64>().unwrap(),
                     &client_shim,
                 );
-               
             }
         }
     }

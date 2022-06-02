@@ -57,7 +57,7 @@ pub fn send_erc20(
         private_share,
         addresses_derivation_map,
     )?;
-    println!("send_erc20 tx_hash: {}", format!("{:?}",tx_hash));
+    println!("send_erc20 tx_hash: {}", format!("{:?}", tx_hash));
     Ok(tx_hash)
 }
 

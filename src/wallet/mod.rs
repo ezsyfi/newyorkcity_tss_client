@@ -192,7 +192,9 @@ impl Wallet {
             client_shim,
             &self.private_share,
             &self.addresses_derivation_map,
-        ).unwrap().to_string()
+        )
+        .unwrap()
+        .to_string()
     }
 
     pub fn send(
@@ -298,12 +300,7 @@ impl Wallet {
     }
 
     // Private fn
-    fn send_btc(
-        &mut self,
-        to_address: &str,
-        amount: f64,
-        client_shim: &ClientShim,
-    ) -> String {
+    fn send_btc(&mut self, to_address: &str, amount: f64, client_shim: &ClientShim) -> String {
         let raw_tx_opt = btc::raw_tx::create_raw_tx(
             to_address,
             amount,

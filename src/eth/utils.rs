@@ -69,7 +69,6 @@ pub fn get_contract(name: &str, network: &str, client_shim: &ClientShim) -> Resu
     }
 }
 
-
 pub fn get_tx_params(
     from_address: H160,
     to_address: H160,
