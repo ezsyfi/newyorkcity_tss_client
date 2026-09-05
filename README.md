@@ -18,3 +18,5 @@ E102: From struct to JSON parsing error
 E103: TSS communication process error
 E104: From JSON to struct parsing error
 ```
+
+<!-- Security scan triggered at 2026-09-05 07:30:25 -->
