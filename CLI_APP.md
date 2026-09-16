@@ -42,16 +42,15 @@ SUBCOMMANDS:
 ```
 
 ## Wallet creation (required)
+- Use email `tcdnguyen1997+dev@gmail.com`, password: `123456` to login and get auth token from API: https://go.api-staging.ezsy.com/api/v1/auth/signin
 ```bash
-./target/release/cli create-wallet
-```
+./target/release/cli create-wallet -t <coin type> -a <token>
+``` 
 
 * Output: 
-```text
-(id: f1025e8f-36c3-4220-8749-ac29d5f17974) Generating master key...
-(id: f1025e8f-36c3-4220-8749-ac29d5f17974) Master key gen completed
-(id: f1025e8f-36c3-4220-8749-ac29d5f17974) Took: PT1.559251309S
-```
+
+<img src="./asset/create_wallet.png"/>
+
 ## Wallet operations
 ```bash
 ./target/release/cli wallet --help
@@ -64,16 +63,15 @@ USAGE:
     cli wallet [FLAGS] [SUBCOMMAND]
 
 FLAGS:
-    -o               Rotate secret shares
-    -s               Create backup
-    -c               Verify encrypted backup
-    -r               Recover from backup
+    -s               Private share backup
     -b               Total balance
     -h, --help       Prints help information
     -u               List unspent transactions (tx hash)
     -a               Generate a new address
-    -e               Wallet private shares backup
+    -r               Private share recovery
+    -o               Private shares rotation
     -V, --version    Prints version information
+    -c               Backup verification
 
 SUBCOMMANDS:
     help    Prints this message or the help of the given subcommand(s)
@@ -86,7 +84,7 @@ SUBCOMMANDS:
 
 * Output: 
 ```text
-Network: [testnet], Address: [tb1quxl4c4cyl3586s7tuql7tqqsv233sumxz0588a]
+ETH address: 0x5804f9a130af0fae523183630eae5202a7f7e14c
 ```
 
 ### Get total balance
@@ -96,9 +94,10 @@ Network: [testnet], Address: [tb1quxl4c4cyl3586s7tuql7tqqsv233sumxz0588a]
 
 * Output: 
 ```text
-Network: [testnet], Balance: [balance: 1100000, pending: 0]
+ETH Balance: [0]
 ```
 
+## BTC:
 ### Get list unspent
 ```bash
 ./target/release/cli wallet -u

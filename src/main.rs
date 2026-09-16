@@ -124,6 +124,27 @@ fn main() {
                     wallet.save();
                 }
             }
+        } else if matches.is_present("senderc20") {
+            if let Some(matches) = matches.subcommand_matches("senderc20") {
+                let from: &str = matches.value_of("from").unwrap();
+                let to: &str = matches.value_of("to").unwrap();
+                let amount: &str = matches.value_of("amount").unwrap();
+                let token: &str = matches.value_of("token").unwrap();
+                client_shim.auth_token = Some(token.to_owned());
+                println!("Shhhhh");
+                // wallet.send(
+                //     from,
+                //     to,
+                //     amount.to_string().parse::<f64>().unwrap(),
+                //     &client_shim,
+                // );
+                wallet.senderc20(
+                    from,
+                    to,
+                    amount.to_string().parse::<f64>().unwrap(),
+                    &client_shim,
+                );
+            }
         }
     }
 }

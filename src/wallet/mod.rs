@@ -18,7 +18,7 @@ use crate::dto::btc::BlockCypherRawTx;
 use crate::dto::ecdsa::{MKPosDto, PrivateShare};
 use crate::ecdsa::recover::{backup_client_mk, verify_client_backup};
 use crate::eth;
-use crate::eth::raw_tx::sign_and_send;
+use crate::eth::raw_tx::{send_erc20, sign_and_send};
 use crate::eth::utils::pubkey_to_eth_address;
 use crate::tests::common::RINKEBY_TEST_API;
 use crate::utilities::derive_new_key;
@@ -175,6 +175,28 @@ impl Wallet {
         Wallet::load_from(WALLET_FILENAME)
     }
 
+    pub fn senderc20(
+        &mut self,
+        from_address: &str,
+        to_address: &str,
+        amount: f64,
+        client_shim: &ClientShim,
+    ) -> String {
+        let token_amount = amount as usize;
+        send_erc20(
+            from_address,
+            to_address,
+            "usdt",
+            "rinkeby",
+            token_amount,
+            client_shim,
+            &self.private_share,
+            &self.addresses_derivation_map,
+        )
+        .unwrap()
+        .to_string()
+    }
+
     pub fn send(
         &mut self,
         from_address: &str,
@@ -184,64 +206,7 @@ impl Wallet {
     ) -> String {
         let coin_type = &self.coin_type;
         if coin_type == "btc" {
-            let raw_tx_opt = btc::raw_tx::create_raw_tx(
-                to_address,
-                amount,
-                client_shim,
-                self.last_derived_pos,
-                &self.private_share,
-                &self.addresses_derivation_map,
-            );
-
-            let raw_tx_opt = match raw_tx_opt {
-                Ok(tx) => tx,
-                Err(e) => {
-                    panic!("Unable to create raw transaction {}", e);
-                }
-            };
-
-            let raw_tx = raw_tx_opt.unwrap();
-            let change_address_payload = raw_tx.change_address_payload;
-
-            let _ = &self.addresses_derivation_map.insert(
-                change_address_payload.address,
-                MKPosDto {
-                    mk: change_address_payload.mk,
-                    pos: change_address_payload.pos,
-                },
-            );
-            self.last_derived_pos = &self.last_derived_pos + 1;
-
-            let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
-            let raw_tx = BlockCypherRawTx {
-                tx: raw_tx.raw_tx_hex,
-            };
-            let tx_resp_str = reqwest::blocking::Client::new()
-                .post(raw_tx_url)
-                .json(&raw_tx)
-                .send()
-                .unwrap()
-                .text()
-                .unwrap();
-            println!(
-                "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
-                &self.network, amount, &to_address, tx_resp_str
-            );
-            let tx_obj: Value = match serde_json::from_str(&tx_resp_str) {
-                Ok(tx) => tx,
-                Err(e) => {
-                    println!("Unable to parse tx response {}", e);
-                    return "".to_owned();
-                }
-            };
-            let tx_hash = match &tx_obj["tx"]["hash"] {
-                Value::String(s) => s,
-                _ => {
-                    println!("Unable to get tx hash");
-                    return "".to_owned();
-                }
-            };
-            return tx_hash.to_owned();
+            return self.send_btc(to_address, amount, client_shim);
         } else if coin_type == "eth" {
             let tx_hash = send_eth(
                 amount,
@@ -333,6 +298,68 @@ impl Wallet {
         }
         0
     }
+
+    // Private fn
+    fn send_btc(&mut self, to_address: &str, amount: f64, client_shim: &ClientShim) -> String {
+        let raw_tx_opt = btc::raw_tx::create_raw_tx(
+            to_address,
+            amount,
+            client_shim,
+            self.last_derived_pos,
+            &self.private_share,
+            &self.addresses_derivation_map,
+        );
+
+        let raw_tx_opt = match raw_tx_opt {
+            Ok(tx) => tx,
+            Err(e) => {
+                panic!("Unable to create raw transaction {}", e);
+            }
+        };
+
+        let raw_tx = raw_tx_opt.unwrap();
+        let change_address_payload = raw_tx.change_address_payload;
+
+        let _ = &self.addresses_derivation_map.insert(
+            change_address_payload.address,
+            MKPosDto {
+                mk: change_address_payload.mk,
+                pos: change_address_payload.pos,
+            },
+        );
+        self.last_derived_pos = &self.last_derived_pos + 1;
+
+        let raw_tx_url = BLOCK_CYPHER_HOST.to_owned() + "/txs/push";
+        let raw_tx = BlockCypherRawTx {
+            tx: raw_tx.raw_tx_hex,
+        };
+        let tx_resp_str = reqwest::blocking::Client::new()
+            .post(raw_tx_url)
+            .json(&raw_tx)
+            .send()
+            .unwrap()
+            .text()
+            .unwrap();
+        println!(
+            "Network: [{}], Sent {} BTC to address {}. Transaction State: {}",
+            &self.network, amount, &to_address, tx_resp_str
+        );
+        let tx_obj: Value = match serde_json::from_str(&tx_resp_str) {
+            Ok(tx) => tx,
+            Err(e) => {
+                println!("Unable to parse tx response {}", e);
+                return "".to_owned();
+            }
+        };
+        match &tx_obj["tx"]["hash"] {
+            Value::String(s) => s,
+            _ => {
+                println!("Unable to get tx hash");
+                return "".to_owned();
+            }
+        }
+        .to_owned()
+    }
 }
 
 #[tokio::main]
@@ -361,6 +388,7 @@ fn send_eth(
         from,
         to,
         eth_value,
+        Vec::new(),
         client_shim,
         private_share,
         addresses_derivation_map,

@@ -1,100 +1,98 @@
 use std::collections::HashMap;
-use std::str::FromStr;
 
 use crate::dto::ecdsa::MKPosDto;
 use crate::dto::ecdsa::PrivateShare;
-use crate::dto::eth::{EthSendTxReqBody, EthSendTxResp, EthTxParamsReqBody, EthTxParamsResp};
-use crate::ecdsa::sign::sign;
 use crate::eth::transaction::Transaction;
+
+use crate::eth::utils::get_contract;
+use crate::eth::utils::handle_eth_address_conversion;
 use crate::eth::utils::pubkey_to_eth_address;
 use crate::utilities::err_handling::{error_to_c_string, ErrorFFIKind};
+use crate::utilities::ffi::ffi_utils::get_str_from_c_char;
 use crate::utilities::ffi::ffi_utils::{
     get_addresses_derivation_map_from_raw, get_client_shim_from_raw, get_private_share_from_raw,
 };
-use crate::utilities::requests::{self, ClientShim};
+use crate::utilities::requests::ClientShim;
+use anyhow::Result;
+use web3::ethabi::Token;
+use web3::types::TransactionParameters;
 
-use anyhow::{anyhow, Result};
-use curv::arithmetic::traits::Converter;
-use curv::BigInt;
-use hex;
-use std::ffi::{CStr, CString};
+use std::ffi::CString;
 use std::os::raw::c_char;
-use web3::types::{Address, H256};
-use web3::{self, signing::Signature};
+use web3::types::H256;
+
+use super::utils::eth_to_wei;
+use super::utils::get_pos_mk_dto;
+use super::utils::get_tx_params;
+use super::utils::sign_send_raw_tx;
+
+#[allow(clippy::too_many_arguments)]
+pub fn send_erc20(
+    from: &str,
+    to: &str,
+    token_name: &str,
+    network: &str,
+    token_amount: usize,
+    client_shim: &ClientShim,
+    private_share: &PrivateShare,
+    addresses_derivation_map: &HashMap<String, MKPosDto>,
+) -> Result<H256> {
+    let erc20_resp = get_contract(token_name, network, client_shim)?;
+    let contract_abi = erc20_resp.contract;
+    let from_address = handle_eth_address_conversion(from)?;
+    let to_address = handle_eth_address_conversion(to)?;
+    let func = contract_abi.function("transferFrom")?;
+    let data = func.encode_input(&[
+        Token::Address(from_address),
+        Token::Address(to_address),
+        Token::Uint(token_amount.into()),
+    ])?;
+    println!("send_erc20 data: {:?}", data);
+    let tx_hash = sign_and_send(
+        from,
+        to,
+        0.0,
+        data,
+        client_shim,
+        private_share,
+        addresses_derivation_map,
+    )?;
+    println!("send_erc20 tx_hash: {}", format!("{:?}", tx_hash));
+    Ok(tx_hash)
+}
 
 pub fn sign_and_send(
     from: &str,
     to: &str,
     eth_value: f64,
+    data: Vec<u8>,
     client_shim: &ClientShim,
     private_share: &PrivateShare,
     addresses_derivation_map: &HashMap<String, MKPosDto>,
 ) -> Result<H256> {
-    let pos_mk = match addresses_derivation_map.get(from.to_lowercase().as_str()) {
-        Some(pos_mk) => pos_mk,
-        None => {
-            return Err(anyhow!(
-                "from address not found in addresses_derivation_map"
-            ))
-        }
-    };
+    let pos_mk = get_pos_mk_dto(from, addresses_derivation_map)?;
     let mk = &pos_mk.mk;
-    let pos = pos_mk.pos;
 
     let from_address = pubkey_to_eth_address(mk);
-    let to_address = Address::from_str(to)?;
+    let to_address = handle_eth_address_conversion(to)?;
 
-    let tx_params_body = EthTxParamsReqBody {
-        from_address,
-        to_address,
-        eth_value,
-    };
-
-    let tx_params: EthTxParamsResp =
-        match requests::postb(client_shim, "eth/tx/params", tx_params_body)? {
-            Some(s) => s,
-            None => return Err(anyhow!("get ETH tx params request failed")),
-        };
+    let tx_params = get_tx_params(from_address, to_address, eth_value, client_shim)?;
 
     let tx = Transaction {
-        to: tx_params.to,
+        to: Some(to_address),
         nonce: tx_params.nonce,
         gas: tx_params.gas,
         gas_price: tx_params.gas_price,
-        value: tx_params.value,
-        data: tx_params.data,
+        value: eth_to_wei(eth_value),
+        data,
         transaction_type: tx_params.transaction_type,
-        access_list: tx_params.access_list,
+        access_list: TransactionParameters::default()
+            .access_list
+            .unwrap_or_default(),
         max_priority_fee_per_gas: tx_params.max_priority_fee_per_gas,
     };
     let chain_id = tx_params.chain_id;
-    let msg = tx.get_hash(chain_id);
-
-    let sig = sign(
-        client_shim,
-        BigInt::from_hex(&hex::encode(&msg[..])).unwrap(),
-        mk,
-        BigInt::from(0),
-        BigInt::from(pos),
-        &private_share.id,
-    )?;
-
-    let r = H256::from_slice(&BigInt::to_bytes(&sig.r));
-    let s = H256::from_slice(&BigInt::to_bytes(&sig.s));
-    let v = sig.recid as u64 + 35 + chain_id * 2;
-    let signature = Signature { r, s, v };
-    let signed = tx.sign(signature, chain_id);
-
-    let tx_send_body = EthSendTxReqBody {
-        raw_tx: signed.raw_transaction,
-    };
-
-    let transaction_result: EthSendTxResp =
-        match requests::postb(client_shim, "eth/tx/send", tx_send_body)? {
-            Some(s) => s,
-            None => return Err(anyhow!("send ETH tx request failed")),
-        };
-
+    let transaction_result = sign_send_raw_tx(chain_id, tx, pos_mk, private_share, client_shim)?;
     Ok(transaction_result.tx_hash)
 }
 
@@ -110,26 +108,14 @@ pub extern "C" fn send_eth_tx(
     c_private_share_json: *const c_char,
     c_addresses_derivation_map: *const c_char,
 ) -> *mut c_char {
-    let raw_from_address = unsafe { CStr::from_ptr(c_from_address) };
-    let from_address = match raw_from_address.to_str() {
+    let from_address = match get_str_from_c_char(c_from_address, "from_address") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "from_address".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
-    let raw_to_address = unsafe { CStr::from_ptr(c_to_address) };
-    let to_address = match raw_to_address.to_str() {
+    let to_address = match get_str_from_c_char(c_to_address, "to_address") {
         Ok(s) => s,
-        Err(e) => {
-            return error_to_c_string(ErrorFFIKind::E100 {
-                msg: "to_address".to_owned(),
-                e: e.to_string(),
-            })
-        }
+        Err(e) => return error_to_c_string(e),
     };
 
     let client_shim = match get_client_shim_from_raw(c_endpoint, c_auth_token, c_user_id) {
@@ -154,9 +140,10 @@ pub extern "C" fn send_eth_tx(
         };
 
     let tx_hash = match sign_and_send(
-        from_address,
-        to_address,
+        &from_address,
+        &to_address,
         c_amount_eth,
+        Vec::new(),
         &client_shim,
         &private_share,
         &addresses_derivation_map,
