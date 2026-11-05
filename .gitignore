@@ -23,4 +23,5 @@ libclient.h
 # Ignore wallet data
 /wallet/
 
-.env*
+config.bat
+node_modules
